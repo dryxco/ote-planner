@@ -59,7 +59,7 @@ export function ReviewView() {
 
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(var(--tabbar-h)+48px)]">
         <div className="flex justify-center gap-12 pb-2 pt-1">
-          <BigStat label="Sync" value={cur.sync} prev={prev.sync} prevLabel={PREV_LABEL[kind]} />
+          <BigStat label="On time" value={cur.sync} prev={prev.sync} prevLabel={PREV_LABEL[kind]} />
           <BigStat label="Attainment" value={cur.attainment} prev={prev.attainment} prevLabel={PREV_LABEL[kind]} />
         </div>
 
@@ -177,7 +177,7 @@ function CompareSheet({
         <span className="text-right tabular">{curLabel}</span>
       </div>
       <div className="overflow-hidden rounded-[14px] bg-surface-2">
-        <CompareRow label="Sync" a={fmtPct(prev.sync)} b={fmtPct(cur.sync)} />
+        <CompareRow label="On time" a={fmtPct(prev.sync)} b={fmtPct(cur.sync)} />
         <CompareRow label="Attainment" a={fmtPct(prev.attainment)} b={fmtPct(cur.attainment)} />
         <CompareRow label="Planned" a={fmtDuration(prev.planned)} b={fmtDuration(cur.planned)} />
         <CompareRow label="Actual" a={fmtDuration(prev.actual)} b={fmtDuration(cur.actual)} />
@@ -200,7 +200,7 @@ function CompareSheet({
                 {act.name}
               </div>
               <CompareRow label="Time" a={time(p)} b={time(c)} />
-              <CompareRow label="Sync" a={rate(p)} b={rate(c)} />
+              <CompareRow label="On time" a={rate(p)} b={rate(c)} />
               <CompareRow label="Attainment" a={att(p)} b={att(c)} />
             </div>
           );

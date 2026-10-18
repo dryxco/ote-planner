@@ -1332,7 +1332,7 @@ function DaySummary({ dayStart, dayEnd, now }: { dayStart: number; dayEnd: numbe
   return (
     <section data-day-summary className="mt-8 border-t border-fg/[0.09] pt-8">
       <div className="flex justify-center gap-12">
-        <BigStat label="Sync" value={over ? syncRate(total) : null} />
+        <BigStat label="On time" value={over ? syncRate(total) : null} />
         <BigStat label="Attainment" value={over ? attainmentRate(total) : null} />
       </div>
       <div className="mt-8">

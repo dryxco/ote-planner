@@ -32,7 +32,7 @@ your machine. Your phone connects to it too.
 | | |
 | --- | --- |
 | ![Today: plan and actual side by side](docs/screenshots/today.png) | **Today.** Your plan on the left, what you actually did on the right, one row per hour.<br><br>Drag on empty space to add a block, drag a block to move it, or drag its edge to change its length.<br><br>Your calendar events show alongside (the dashed blocks); tap one to turn it into a plan. When a plan ends, Sync can ask whether you did it. |
-| ![Review: how well plan and actual matched](docs/screenshots/review.png) | **Review.** Two scores for each week, month or year:<br>• **Sync %**: you did what you planned, when you planned it.<br>• **Attainment %**: you did it, even at another time.<br><br>See them by weekday and per activity, next to the previous period. |
+| ![Review: how well plan and actual matched](docs/screenshots/review.png) | **Review.** Two scores for each week, month or year:<br>• **On time %**: you did what you planned, when you planned it.<br>• **Attainment %**: you did it, even at another time.<br><br>See them by weekday and per activity, next to the previous period. |
 | ![Goals that fill from what you did](docs/screenshots/goals.png) | **Goals.** For example "25 hours of work this week", "exercise 4 times", "read 5 hours", or "start on time every day".<br><br>They fill up by themselves from what you record. |
 
 | | |
