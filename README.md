@@ -37,8 +37,8 @@ cloud service, and your data never leaves your machine. Your phone connects to i
 
 | | |
 | --- | --- |
-| ![Today: plan and actual side by side](docs/screenshots/today.png) | **Today.** Your plan on the left, what you actually did on the right, one row per hour.<br><br>Drag on empty space to add a block, drag a block to move it, or drag its edge to change its length.<br><br>Your calendar events show alongside (the dashed blocks); tap one to turn it into a plan. When a plan ends, Ote can ask whether you did it. |
-| ![Review: how well plan and actual matched](docs/screenshots/review.png) | **Review.** Two scores for each week, month or year:<br>• **On time %**: you did what you planned, when you planned it.<br>• **Attainment %**: you did it, even at another time.<br><br>See them by weekday and per activity, next to the previous period. |
+| ![Today: plan and actual side by side](docs/screenshots/today.png) | **Today.** **Planned** on the left, what you **Logged** (actually did) on the right, one row per hour.<br><br>Drag on empty space to add a block, drag a block to move it, or drag its edge to change its length.<br><br>Your calendar events show alongside (the dashed blocks); tap one to turn it into a plan. When a plan ends, Ote can ask whether you did it. |
+| ![Review: how well plan and actual matched](docs/screenshots/review.png) | **Review.** Two scores for each week, month or year:<br>• **On time %**: you did what you planned, when you planned it.<br>• **Done %**: you did it, even at another time.<br><br>See them by weekday and per activity, next to the previous period. |
 | ![Goals that fill from what you did](docs/screenshots/goals.png) | **Goals.** For example "25 hours of work this week", "exercise 4 times", "read 5 hours", or "start on time every day".<br><br>They fill up by themselves from what you record. |
 
 Also included:
@@ -137,15 +137,15 @@ The installer opens Ote in your browser. You can always find it at the address i
 2. **Look at your activities.** Every block belongs to an activity, and Ote starts with Sleep, Work,
    Exercise, Reading, Travel, Meal, Commute and Other. To rename them, change colours or add your
    own, use **Activities**.
-3. **Plan.** Open **Today** (on a computer, **Home**). Drag down on empty space in the **Plan**
+3. **Plan.** Open **Today** (on a computer, **Home**). Drag down on empty space in the **Planned**
    column, choose an activity, and save.
-4. **Record.** Do the same in the **Actual** column for what really happened. For a nudge, turn on
+4. **Record.** Do the same in the **Logged** column for what really happened. For a nudge, turn on
    Settings → Notification defaults → **End confirmation**: when a plan ends, Ote asks whether you
    did it (✓ / ✕), and ✓ records it for you.
 5. **Add your calendars** (optional) in Settings → Accounts, so your meetings show next to your
    plans. See [Calendars](#calendars).
-6. **After a few days**, open **Review** to see how your plans and your days compare, and set a few
-   **Goals**.
+6. **After a few days**, open **Insights → Review** to see how your plans and your days compare, and set a few
+   **Goals** (also under **Insights**).
 
 > Want to look around first? A copy of Ote filled with sample data is described under
 > [For developers](#for-developers).
