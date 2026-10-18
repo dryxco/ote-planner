@@ -71,6 +71,12 @@ for (let d = weeks ? -7 * weeks + 1 : 0; d <= (weeks ? 6 : 0); d++) {
     actual(name === "Deep work" && rnd() < 0.3 ? "Email" : name, name === "Deep work" && rnd() < 0.3 ? "other" : act, as, ae);
   }
   if (at(d, 0) < now) actual("Sleep", "sleep", at(d - 1, 23, 30) + jitter(30), at(d, 6, 40) + jitter(20));
+  // moments: a one-minute plan shows as a little flag at its minute
+  for (const [name, act, h, m] of [["Vitamins", "other", 7, 50], ["Leave the office", "commute", 17, 55], ["Call home", "other", 20, 30]]) {
+    const s = at(d, h, m);
+    plan(name, act, s, s + 60_000);
+    if (s + 60_000 <= now && rnd() > 0.2) actual(name, act, s, s + 60_000);
+  }
 }
 
 // projects, to-dos, tickets
