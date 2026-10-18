@@ -3,7 +3,15 @@
 //   --weeks=3  also the weeks before and after (for the Review / Goals screenshots in the README)
 // usage: SYNC_TEST_SESSION=<cookie> node scripts/demo-data.mjs <base url> [--weeks=3]
 // Never point it at your real server: it adds records next to yours.
-import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
+
+// the same ids every run: running it again updates the example instead of adding a second copy
+// (each browser keeps its own copy of the data and would sync the old one back)
+let idN = 0;
+const randomUUID = () => {
+  const h = createHash("sha256").update(`sync-demo:${idN++}`).digest("hex");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`;
+};
 
 const base = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? "http://127.0.0.1:3302";
 const weeks = Number(process.argv.find((a) => a.startsWith("--weeks="))?.split("=")[1] ?? 0);
