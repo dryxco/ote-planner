@@ -176,3 +176,9 @@ Some scripts need extra setup:
 - `e2e-connector.mjs` and `e2e-auth.mjs` also need `node scripts/mock-connector.mjs 3399`.
 - For `e2e-auth.mjs`, start the server with `SYNC_PASSWORD=test-pass SYNC_LOGIN_URL=http://127.0.0.1:3399`.
 - Each script's header says what else it needs.
+
+## License
+
+[PolyForm Noncommercial 1.0.0](LICENSE.md). You can use, change and share Sync for any
+noncommercial purpose: personal use, study, research, hobby projects, and nonprofit, educational or
+government organizations. Commercial use isn't allowed. For that, ask for a separate license.
