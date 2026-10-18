@@ -45,7 +45,7 @@ export function WeekStrip({
   return (
     <div
       ref={box}
-      className="touch-pan-y select-none overflow-hidden pb-3"
+      className="touch-pan-y select-none overflow-hidden pb-2"
       onPointerDown={(e) => {
         if (animating) return;
         drag.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, id: e.pointerId, horizontal: null, lastX: e.clientX, lastT: e.timeStamp, v: 0 };
@@ -95,7 +95,7 @@ export function WeekStrip({
         }}
       >
         {weeks.map((days, wi) => (
-          <div key={wi} className="grid w-1/3 grid-cols-7 px-3">
+          <div key={wi} className="grid w-1/3 grid-cols-7 px-2.5">
             {days.map((d) => {
               const wd = new Date(d).getDay();
               const selected = isSameDay(d, date);
@@ -105,22 +105,20 @@ export function WeekStrip({
                   key={d}
                   data-day={d}
                   onClick={() => !suppressClick.current && onSelect(d)}
-                  className="flex flex-col items-center gap-1"
+                  className={cx(
+                    "mx-[3px] flex flex-col items-center gap-[3px] rounded-[12px] border pb-[7px] pt-[6px] transition-colors",
+                    selected ? "border-fg/[0.14] bg-surface shadow-[0_1px_0_var(--line-strong)]" : "border-transparent",
+                  )}
                   tabIndex={wi === 1 ? 0 : -1}
                   aria-hidden={wi !== 1}
+                  aria-current={selected ? "date" : undefined}
                 >
-                  <span className="text-[11px] text-fg/55">{WEEKDAY_LETTER[wd]}</span>
-                  <span
-                    className={cx(
-                      "flex h-[30px] w-[30px] items-center justify-center rounded-full text-[16px] tabular",
-                      selected && "bg-fg font-semibold text-bg",
-                      !selected && wd === 0 && "text-[#ff453a]",
-                      !selected && wd === 6 && "text-[#0a84ff]",
-                      !selected && isToday && "ring-1 ring-fg/50",
-                    )}
-                  >
+                  <span className={cx("text-[10.5px] font-medium uppercase tracking-[0.06em]", selected ? "text-fg/70" : "text-fg/40")}>{WEEKDAY_LETTER[wd]}</span>
+                  <span className={cx("text-[16px] leading-none tabular", selected ? "font-semibold" : "text-fg/80", isToday && "font-semibold text-now")}>
                     {new Date(d).getDate()}
                   </span>
+                  {/* today: a short persimmon tick, wherever the selection is */}
+                  <span className={cx("h-[2px] w-3 rounded-full", isToday ? "bg-now" : "bg-transparent")} />
                 </button>
               );
             })}

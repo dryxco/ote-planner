@@ -5,8 +5,8 @@ import { useSync, activityOf } from "@/lib/store";
 import { useUI } from "@/lib/ui";
 import { useCalendarEvents, useNow } from "@/lib/hooks";
 import { expandPlans } from "@/lib/plans";
-import { WEEKDAY_SHORT, addDays, logicalDate, logicalDayRange, pad2, HOUR } from "@/lib/time";
-import { GearIcon, PlayIcon, StopIcon } from "@/components/icons";
+import { WEEKDAY_LONG, addDays, logicalDate, logicalDayRange, pad2, HOUR } from "@/lib/time";
+import { PlayIcon, SlidersIcon, StopIcon } from "@/components/icons";
 import { Timeline } from "@/components/today/Timeline";
 import { WeekStrip } from "@/components/today/WeekStrip";
 import { DaySwipe } from "@/components/today/DaySwipe";
@@ -32,29 +32,33 @@ export function TodayView() {
 
   return (
     <div className="flex h-full flex-col pt-[max(12px,env(safe-area-inset-top))]">
-      <header className="relative flex items-center justify-center px-4 pb-3 pt-2">
-        {date !== today && (
-          <button
-            aria-label="Go to today"
-            onClick={() => setDate(today)}
-            className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-fg/[0.08] px-2.5 py-1 text-[12.5px] font-semibold text-fg/80 hover:bg-fg/[0.14]"
-          >
-            Today
-          </button>
-        )}
-        <button data-today-date onClick={() => setDate(today)} className="flex items-baseline gap-1.5">
-          <span className="text-[22px] font-semibold tabular">
-            {pad2(d.getMonth() + 1)}.{pad2(d.getDate())}
-          </span>
-          <span className="text-[14px] text-fg/70">
-            {WEEKDAY_SHORT[d.getDay()]}
-            {rel ? `, ${rel}` : ""}
+      {/* the weekday leads; the date and how far it is from today sit under it */}
+      <header className="flex items-start justify-between gap-3 px-4 pb-2.5 pt-1">
+        <button data-today-date onClick={() => setDate(today)} className="flex min-w-0 flex-col items-start text-left">
+          <span className="text-[24px] font-semibold leading-[1.1] tracking-[-0.02em]">{WEEKDAY_LONG[d.getDay()]}</span>
+          <span className="mt-0.5 flex items-center gap-1.5 text-[13px] text-fg/55 tabular">
+            {d.toLocaleString("en-US", { month: "long" })} {d.getDate()}
+            {rel && (
+              <>
+                <span className={cx("h-[5px] w-[5px] rounded-full", rel === "Today" ? "bg-now" : "bg-fg/35")} />
+                <span className={rel === "Today" ? "font-medium text-now" : ""}>{rel}</span>
+              </>
+            )}
           </span>
         </button>
-        <div className="absolute right-3 top-1/2 z-30 flex -translate-y-1/2 items-center gap-1.5">
+        <div className="relative z-30 flex shrink-0 items-center gap-1 pt-1">
+          {date !== today && (
+            <button
+              aria-label="Go to today"
+              onClick={() => setDate(today)}
+              className="mr-1 h-[30px] rounded-[9px] border border-fg/[0.12] px-2.5 text-[12.5px] font-semibold text-fg/80 hover:bg-fg/[0.06]"
+            >
+              Today
+            </button>
+          )}
           <AgentChat />
-          <button aria-label="Settings" onClick={() => setSettingsOpen(true)} className="text-fg/80">
-            <GearIcon size={21} />
+          <button aria-label="Settings" onClick={() => setSettingsOpen(true)} className="flex h-[32px] w-[32px] items-center justify-center rounded-[9px] text-fg/75 hover:bg-fg/[0.06]">
+            <SlidersIcon size={20} />
           </button>
         </div>
       </header>
@@ -96,16 +100,18 @@ function TimerButton({ now }: { now: number }) {
         <button
           aria-label="Timer options"
           onClick={() => setPicking((v) => !v)}
-          className="absolute bottom-[calc(var(--tabbar-h)+10px)] right-4 z-20 flex h-[42px] items-center gap-2 rounded-full border border-[#ff453a]/50 bg-surface-2 px-4 text-[14px] font-medium shadow-lg"
+          className="absolute bottom-[calc(var(--tabbar-h)+12px)] left-4 z-20 flex h-[44px] items-center gap-2.5 rounded-[14px] border border-now/40 bg-surface py-1 pl-1 pr-3.5 text-[14px] font-medium shadow-[0_6px_24px_rgba(0,0,0,0.18)]"
         >
-          <StopIcon size={13} className="text-[#ff453a]" />
-          <span className="max-w-[110px] truncate">{timer.name || activityOf(activities, timer.activityId).name}</span>
-          <span className="tabular text-fg/70">{label}</span>
+          <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-now text-now-ink">
+            <StopIcon size={12} />
+          </span>
+          <span className="max-w-[120px] truncate">{timer.name || activityOf(activities, timer.activityId).name}</span>
+          <span className="tabular text-now">{label}</span>
         </button>
         {picking && (
           <>
             <div className="fixed inset-0 z-30" onClick={() => setPicking(false)} />
-            <div data-timer-menu className="animate-fade absolute bottom-[calc(var(--tabbar-h)+60px)] right-4 z-40 w-[230px] overflow-hidden rounded-[14px] border border-fg/10 bg-surface-2/95 py-1 shadow-2xl backdrop-blur-xl">
+            <div data-timer-menu className="animate-fade absolute bottom-[calc(var(--tabbar-h)+64px)] left-4 z-40 w-[230px] overflow-hidden rounded-[14px] border border-fg/10 bg-surface-2/95 py-1 shadow-2xl backdrop-blur-xl">
               <p className="px-3.5 pb-1 pt-1.5 text-[11px] text-fg/45">
                 {timer.targetEnd ? "Pomodoro" : "Timer"} · {label}
               </p>
@@ -146,15 +152,17 @@ function TimerButton({ now }: { now: number }) {
     <>
       <button
         onClick={() => setPicking((v) => !v)}
-        className="absolute bottom-[calc(var(--tabbar-h)+10px)] right-4 z-20 flex h-[42px] items-center gap-1.5 rounded-full border border-fg/10 bg-surface-2 px-4 text-[14px] font-medium shadow-lg"
+        className="absolute bottom-[calc(var(--tabbar-h)+12px)] left-4 z-20 flex h-[44px] items-center gap-2.5 rounded-[14px] border border-fg/10 bg-surface py-1 pl-1 pr-3.5 text-[14px] font-medium shadow-[0_6px_24px_rgba(0,0,0,0.18)]"
       >
-        <PlayIcon size={12} />
+        <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-now text-now-ink">
+          <PlayIcon size={12} />
+        </span>
         Timer
       </button>
       {picking && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setPicking(false)} />
-          <div className="animate-fade absolute bottom-[calc(var(--tabbar-h)+60px)] right-4 z-40 w-[230px] overflow-hidden rounded-[14px] border border-fg/10 bg-surface-2/95 shadow-2xl backdrop-blur-xl">
+          <div className="animate-fade absolute bottom-[calc(var(--tabbar-h)+64px)] left-4 z-40 w-[230px] overflow-hidden rounded-[14px] border border-fg/10 bg-surface-2/95 shadow-2xl backdrop-blur-xl">
             <p className="px-3.5 pb-1 pt-2.5 text-[11px] text-fg/45">Start a timer</p>
             {current.map((o) => (
               <PickRow

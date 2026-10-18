@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { UndoKeys } from "./UndoKeys";
-import { BookIcon, CalendarIcon, ChartIcon, FlagIcon, FolderIcon, GridIcon, HomeIcon, SunIcon } from "./icons";
+import { DiaryIcon, HomeIcon, InsightsIcon, PlannerIcon, ReviewIcon, StackIcon, SwatchIcon, TargetIcon, TodayIcon } from "./icons";
 import { cx } from "./ui";
 import { useHydrated, useNow } from "@/lib/hooks";
 import { logicalDate } from "@/lib/time";
@@ -19,23 +19,27 @@ import { Reminders } from "./Reminders";
 /** Computers: the three-pane Home first, then Today on its own like any other tab. */
 const DESKTOP_TABS = [
   { href: "/", label: "Home", Icon: HomeIcon },
-  { href: "/today", label: "Today", Icon: SunIcon },
-  { href: "/calendar", label: "Calendar", Icon: CalendarIcon },
-  { href: "/projects", label: "Projects", Icon: FolderIcon },
-  { href: "/diary", label: "Diary", Icon: BookIcon },
-  { href: "/review", label: "Review", Icon: ChartIcon },
-  { href: "/activities", label: "Activities", Icon: GridIcon },
-  { href: "/goals", label: "Goals", Icon: FlagIcon },
+  { href: "/today", label: "Today", Icon: TodayIcon },
+  { href: "/calendar", label: "Calendar", Icon: PlannerIcon },
+  { href: "/projects", label: "Projects", Icon: StackIcon },
+  { href: "/diary", label: "Diary", Icon: DiaryIcon },
+];
+
+/** Looking back rather than planning ahead: one "Insights" entry on phones, a group on the rail. */
+const INSIGHTS = [
+  { href: "/review", label: "Review", hint: "On time and done, over time", Icon: ReviewIcon },
+  { href: "/activities", label: "Activities", hint: "What your time goes to", Icon: SwatchIcon },
+  { href: "/goals", label: "Goals", hint: "Targets for the week or month", Icon: TargetIcon },
 ];
 
 const TABS = [
-  { href: "/", label: "Today", Icon: SunIcon },
-  { href: "/calendar", label: "Calendar", Icon: CalendarIcon },
-  { href: "/projects", label: "Projects", Icon: FolderIcon },
-  { href: "/review", label: "Review", Icon: ChartIcon },
-  { href: "/activities", label: "Activities", Icon: GridIcon },
-  { href: "/goals", label: "Goals", Icon: FlagIcon },
+  { href: "/", label: "Today", Icon: TodayIcon },
+  { href: "/calendar", label: "Calendar", Icon: PlannerIcon },
+  { href: "/projects", label: "Projects", Icon: StackIcon },
+  { href: "/diary", label: "Diary", Icon: DiaryIcon },
 ];
+
+const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
 export function AppShell({ children }: { children: ReactNode }) {
   const desktop = useIsDesktop();
@@ -78,7 +82,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 
   if (desktop) {
-    // computers: side rail instead of the floating tab bar; Today becomes the three-pane home,
+    // computers: side rail instead of the docked tab bar; Today becomes the three-pane home,
     // other tabs stay phone-width in the middle
     return (
       <div className="fixed inset-0 flex overflow-hidden bg-bg" style={{ ["--tabbar-h" as string]: "16px" }}>
@@ -102,6 +106,24 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 function SideRail() {
   const pathname = usePathname();
+  const item = ({ href, label, Icon }: (typeof DESKTOP_TABS)[number]) => {
+    const active = isActive(pathname, href);
+    return (
+      <Link
+        key={href}
+        href={href}
+        aria-current={active ? "page" : undefined}
+        className={cx(
+          "relative flex w-[62px] flex-col items-center gap-[5px] rounded-[10px] py-2 text-[10px] font-medium tracking-[0.01em]",
+          active ? "bg-fg/[0.07] text-fg" : "text-fg/50 hover:bg-fg/[0.04] hover:text-fg/80",
+        )}
+      >
+        {active && <span className="absolute -left-[7px] top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-now" />}
+        <Icon size={20} />
+        {label}
+      </Link>
+    );
+  };
   return (
     <nav className="flex w-[76px] shrink-0 flex-col items-center gap-1 border-r border-fg/[0.07] py-4">
       {/* the app icon, on the ground that matches the theme */}
@@ -111,49 +133,64 @@ function SideRail() {
         {/* eslint-disable-next-line @next/next/no-img-element -- a 40px static icon */}
         <img src="/icons/icon-light-192.png" alt="Ote" width={40} height={40} className="hidden h-full w-full rounded-[11px] shadow-[0_0_0_1px_rgba(0,0,0,0.06)] [[data-theme=light]_&]:block" />
       </span>
-      {DESKTOP_TABS.map(({ href, label, Icon }) => {
-        const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-        return (
-          <Link
-            key={href}
-            href={href}
-            className={cx(
-              "flex w-[60px] flex-col items-center gap-1 rounded-[12px] py-2 text-[10px] font-medium",
-              active ? "bg-fg/10 text-[#0a84ff]" : "text-fg/80 hover:bg-fg/5",
-            )}
-          >
-            <Icon size={20} />
-            {label}
-          </Link>
-        );
-      })}
+      {DESKTOP_TABS.map(item)}
+      <span className="mb-1 mt-4 text-[9px] font-semibold uppercase tracking-[0.12em] text-fg/35">Insights</span>
+      {INSIGHTS.map(item)}
     </nav>
   );
 }
 
+/** Phones: a bar docked to the bottom edge. Insights opens a small menu of Review, Activities and Goals. */
 function TabBar() {
   const pathname = usePathname();
+  const [menu, setMenu] = useState(false);
+  const insights = INSIGHTS.some((t) => isActive(pathname, t.href));
+  const slot = (active: boolean) =>
+    cx("relative flex flex-1 flex-col items-center justify-center gap-[4px] text-[10px] font-medium tracking-[0.01em] transition-colors", active ? "text-fg" : "text-fg/45");
+  const mark = <span className="absolute left-1/2 top-0 h-[2.5px] w-6 -translate-x-1/2 rounded-b-full bg-now" />;
   return (
-    <nav className="pointer-events-none absolute inset-x-0 bottom-0 z-30 px-4 pb-[max(10px,env(safe-area-inset-bottom))]">
-      <div className="pointer-events-auto mx-auto flex h-[62px] items-stretch rounded-full border border-fg/10 bg-surface/90 p-1 shadow-[0_8px_30px_rgba(0,0,0,0.6)] backdrop-blur-xl">
-        {TABS.map(({ href, label, Icon }) => {
-          const active = href === "/" ? pathname === "/" || pathname === "/today" : pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cx(
-                "flex flex-1 flex-col items-center justify-center gap-[3px] rounded-full text-[10px] font-medium transition-colors",
-                active ? "bg-fg/10 text-[#0a84ff]" : "text-fg",
-              )}
-            >
-              <Icon size={22} />
-              {label}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+    <>
+      {menu && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setMenu(false)} />
+          <div data-insights-menu className="animate-fade absolute bottom-[calc(var(--tabbar-h)+8px)] right-3 z-40 w-[250px] overflow-hidden rounded-[14px] border border-fg/10 bg-surface p-1 shadow-2xl">
+            {INSIGHTS.map(({ href, label, hint, Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMenu(false)}
+                className={cx("flex items-center gap-3 rounded-[10px] px-3 py-2.5", isActive(pathname, href) ? "bg-fg/[0.07]" : "hover:bg-fg/[0.04]")}
+              >
+                <Icon size={20} className="shrink-0" />
+                <span className="min-w-0">
+                  <span className="block text-[14px] font-medium">{label}</span>
+                  <span className="block truncate text-[11px] text-fg/50">{hint}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+      <nav className="absolute inset-x-0 bottom-0 z-30 flex h-[var(--tabbar-h)] items-start border-t border-fg/[0.08] bg-nav pb-[max(6px,env(safe-area-inset-bottom))] backdrop-blur-xl">
+        <div className="flex h-[56px] w-full items-stretch">
+          {TABS.map(({ href, label, Icon }) => {
+            const active = href === "/" ? pathname === "/" || pathname === "/today" : isActive(pathname, href);
+            return (
+              <Link key={href} href={href} aria-current={active ? "page" : undefined} className={slot(active)}>
+                {active && mark}
+                <Icon size={22} />
+                {label}
+              </Link>
+            );
+          })}
+          <button aria-expanded={menu} aria-haspopup="menu" onClick={() => setMenu((v) => !v)} className={slot(insights || menu)}>
+            {insights && mark}
+            <InsightsIcon size={22} />
+            Insights
+          </button>
+        </div>
+      </nav>
+    </>
   );
 }
 

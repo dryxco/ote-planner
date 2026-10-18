@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  /* height the floating tab bar takes from the bottom edge (incl. the home-indicator area) */
-  --tabbar-h: calc(max(10px, env(safe-area-inset-bottom)) + 62px);
+  /* height the docked tab bar takes from the bottom edge (incl. the home-indicator area) */
+  --tabbar-h: calc(max(6px, env(safe-area-inset-bottom)) + 56px);
 
   /* dark (default) */
   --bg: #000000;
@@ -23,16 +23,18 @@
   --matched: #d8d8dc; /* review bars: matched plan */
   --elsewhere: #76767c; /* review bars: at another time */
   --track: #121214; /* progress bar track */
-  --marker-ring: #000000; /* ring around the now badge */
   --line-strong: rgba(255, 255, 255, 0.14);
   --text: var(--fg);
   --text-2: rgba(235, 235, 245, 0.62);
   --text-3: rgba(235, 235, 245, 0.32);
   --accent: #0a84ff;
   --danger: #ff453a;
-  --now: #ff3b30;
-  --sun: #ff453a;
-  --sat: #0a84ff;
+  /* Ote's own mark: the "now" cursor, the running timer, today in the week row (persimmon) */
+  --now: #f39a3c;
+  --now-ink: #1a1206; /* text on --now */
+  --now-soft: rgba(243, 154, 60, 0.16);
+  --ring-track: rgba(255, 255, 255, 0.08); /* summary rings */
+  --nav: rgba(16, 16, 18, 0.92); /* docked tab bar */
   color-scheme: dark;
 }
 
@@ -56,13 +58,16 @@
   --matched: #484848;
   --elsewhere: #ababab;
   --track: #dfdfdf;
-  --marker-ring: #ebebeb;
   --line-strong: rgba(0, 0, 0, 0.14);
   --text-2: rgba(0, 0, 0, 0.55);
   --text-3: rgba(0, 0, 0, 0.28);
   --accent: #007aff;
   --danger: #ff3b30;
-  --sat: #007aff;
+  --now: #d2670f;
+  --now-ink: #ffffff;
+  --now-soft: rgba(210, 103, 15, 0.12);
+  --ring-track: rgba(0, 0, 0, 0.07);
+  --nav: rgba(245, 245, 245, 0.94);
   color-scheme: light;
 }
 
@@ -86,8 +91,9 @@
   --color-accent: var(--accent);
   --color-danger: var(--danger);
   --color-now: var(--now);
-  --color-sun: var(--sun);
-  --color-sat: var(--sat);
+  --color-now-ink: var(--now-ink);
+  --color-now-soft: var(--now-soft);
+  --color-nav: var(--nav);
   --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
   --font-mono: var(--font-geist-mono);
 }

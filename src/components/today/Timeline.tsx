@@ -15,7 +15,7 @@ import { CheckIcon, PauseIcon, PlayIcon, SmallCalIcon, XIcon } from "../icons";
 import { cx } from "../ui";
 import { useCalendarLabel } from "@/lib/writable-calendars";
 import { eventIn } from "@/lib/event-twins";
-import { ActivityBar, BigStat, Legend } from "../stats-ui";
+import { ActivityRow, Legend, ScoreCard } from "../stats-ui";
 import { actualTime, attainmentRate, fulfil, syncRate } from "@/lib/stats";
 
 /** Height of one hour row. Each row holds six 10-minute cells, left to right. */
@@ -368,10 +368,17 @@ export function Timeline({ date, now, events }: { date: number; now: number; eve
         </div>
       )}
       {confirm?.kind === "timer" && <RenameTimer onClose={() => setConfirm(null)} />}
-      <div className="grid px-3 pb-1.5 text-center text-[13px] font-medium text-fg/70" style={{ gridTemplateColumns: `1fr ${AXIS_W}px 1fr` }}>
-        <span>Plan</span>
+      {/* the glyphs echo the blocks: plans are outlined, what was logged is filled */}
+      <div className="grid px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.11em] text-fg/50" style={{ gridTemplateColumns: `1fr ${AXIS_W}px 1fr` }}>
+        <span className="flex items-center gap-1.5 pl-1">
+          <span className="h-[9px] w-[9px] rounded-[3px] border-[1.5px] border-current" />
+          Planned
+        </span>
         <span />
-        <span>Actual</span>
+        <span className="flex items-center gap-1.5 pl-1">
+          <span className="h-[9px] w-[9px] rounded-[3px] bg-current" />
+          Logged
+        </span>
       </div>
 
       {(allDayPlans.length > 0 || allDayEvents.length > 0 || early.length > 0) && (
@@ -470,6 +477,7 @@ export function Timeline({ date, now, events }: { date: number; now: number; eve
               )}
           </Column>
 
+          {/* the hour ruler: each hour sits on its line; the current minute reads in the row it falls in */}
           <div className="relative">
             {Array.from({ length: rows }, (_, r) => {
               const hr = new Date(dayStart + r * HOUR).getHours();
@@ -477,15 +485,20 @@ export function Timeline({ date, now, events }: { date: number; now: number; eve
                 <div
                   key={r}
                   className={cx(
-                    "absolute inset-x-0 flex items-center justify-center text-[11.5px] tabular",
-                    nowInDay && r === nowRow ? "font-semibold text-[#ff453a]" : "text-fg/50",
+                    "absolute inset-x-0 flex -translate-y-1/2 items-center justify-center text-[10.5px] leading-none tabular",
+                    nowInDay && r === nowRow ? "font-semibold text-now" : "text-fg/40",
                   )}
-                  style={{ top: r * ROW_H, height: ROW_H }}
+                  style={{ top: r * ROW_H }}
                 >
                   {pad2(hr)}
                 </div>
               );
             })}
+            {nowInDay && (
+              <div data-now-time className="absolute inset-x-0 flex -translate-y-1/2 justify-center" style={{ top: nowRow * ROW_H + ROW_H / 2 }}>
+                <span className="rounded-[4px] bg-now-soft px-[2px] text-[9.5px] font-semibold leading-[14px] text-now tabular">{fmtTime24(now)}</span>
+              </div>
+            )}
           </div>
 
           <Column
@@ -555,14 +568,17 @@ function borderColor(color: string) {
   return `color-mix(in srgb, ${color} 65%, var(--outline-mix))`;
 }
 
-/** Vertical red line at the current minute inside the current hour row, with a time badge on top. */
+/**
+ * The current minute inside the current hour row: a persimmon rule with a notch at each end. The time
+ * itself reads in the hour ruler beside it (and for screen readers here).
+ */
 function NowMarker({ row, frac, label }: { row: number; frac: number; label: string }) {
   return (
     <div className="pointer-events-none absolute z-40" style={{ top: row * ROW_H, left: `${frac * 100}%`, height: ROW_H }} data-now>
-      <div className="absolute inset-y-0 w-[2px] -translate-x-1/2 bg-[#ff3b30]" />
-      <div className="absolute top-0 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#ff3b30] px-[7px] py-[1px] text-[11px] font-semibold text-white tabular shadow-[0_0_0_2px_var(--marker-ring)]">
-        {label}
-      </div>
+      <div className="absolute -inset-y-[3px] w-[2px] -translate-x-1/2 rounded-full bg-now" />
+      <div className="absolute -top-[5px] h-[6px] w-[6px] -translate-x-1/2 rotate-45 rounded-[1px] bg-now" />
+      <div className="absolute -bottom-[5px] h-[6px] w-[6px] -translate-x-1/2 rotate-45 rounded-[1px] bg-now" />
+      <span className="sr-only">{label}</span>
     </div>
   );
 }
@@ -1316,7 +1332,7 @@ function ActualBlocks({ actual: a, part, grid }: { actual: Actual; part?: [numbe
 }
 
 /**
- * Below the grid (scroll down): the day's Ote / Attainment and actual vs. planned per activity.
+ * Below the grid (scroll down): the day's On time / Done and actual vs. planned per activity.
  * Rates show "—" until the day is over — a day's score is final once it closes.
  */
 function DaySummary({ dayStart, dayEnd, now }: { dayStart: number; dayEnd: number; now: number }) {
@@ -1330,22 +1346,25 @@ function DaySummary({ dayStart, dayEnd, now }: { dayStart: number; dayEnd: numbe
     .map((id) => ({ id, act: activityOf(activities, id), stat: fulfil(occs.filter((o) => o.plan.activityId === id), actuals), actual: actualTime(actuals, dayStart, dayEnd, id) }))
     .sort((a, b) => a.act.order - b.act.order);
   return (
-    <section data-day-summary className="mt-8 border-t border-fg/[0.09] pt-8">
-      <div className="flex justify-center gap-12">
-        <BigStat label="On time" value={over ? syncRate(total) : null} />
-        <BigStat label="Attainment" value={over ? attainmentRate(total) : null} />
+    <section data-day-summary className="mt-8 pt-2">
+      <h3 className="mb-2.5 px-1 text-[11px] font-semibold uppercase tracking-[0.11em] text-fg/45">The day{over ? "" : " · scores when it closes"}</h3>
+      <div className="flex gap-2.5">
+        <ScoreCard label="On time" value={over ? syncRate(total) : null} />
+        <ScoreCard label="Done" value={over ? attainmentRate(total) : null} />
       </div>
-      <div className="mt-8">
-        <ActivityBar name="All" stat={total} actual={actualTime(actuals, dayStart, dayEnd)} />
-        <div className="mt-2 flex gap-3 text-[10px] text-fg/50">
+      <div className="mt-2.5 rounded-[16px] bg-surface px-3.5 pb-4 pt-3.5">
+        <ActivityRow name="All" stat={total} actual={actualTime(actuals, dayStart, dayEnd)} strong />
+        <div className="mt-2 flex gap-3 pl-5 text-[10.5px] text-fg/50">
           <Legend color="var(--matched)" label="Matched plan" />
           <Legend color="var(--elsewhere)" label="At another time" />
         </div>
-      </div>
-      <div className="mt-6 flex flex-col gap-5">
-        {rows.map((r) => (
-          <ActivityBar key={r.id} name={r.act.name} color={r.act.color} stat={r.stat} actual={r.actual} />
-        ))}
+        {rows.length > 0 && (
+          <div className="mt-4 flex flex-col gap-3.5 border-t border-fg/[0.07] pt-4">
+            {rows.map((r) => (
+              <ActivityRow key={r.id} name={r.act.name} color={r.act.color} stat={r.stat} actual={r.actual} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

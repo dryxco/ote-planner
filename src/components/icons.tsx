@@ -13,31 +13,109 @@ const base = (size = 22): SVGProps<SVGSVGElement> => ({
   strokeLinejoin: "round",
 });
 
-export function SunIcon({ size, ...p }: P) {
-  return (
-    <svg {...base(size)} {...p}>
-      <circle cx="12" cy="12" r="4.2" fill="currentColor" stroke="none" />
-      {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
-        <line key={a} x1="12" y1="2.6" x2="12" y2="5" transform={`rotate(${a} 12 12)`} strokeWidth={2} />
-      ))}
-    </svg>
-  );
-}
+/* Navigation set: thin outlines, each with one small solid mark. */
 
 export function HomeIcon({ size, ...p }: P) {
   return (
-    <svg {...base(size)} {...p}>
-      <path d="M3.5 10.5 12 3.8l8.5 6.7" strokeLinejoin="round" />
-      <path d="M5.8 9v10.2h4.4v-5.4h3.6v5.4h4.4V9" strokeLinejoin="round" />
+    <svg {...base(size)} strokeWidth={1.6} {...p}>
+      <path d="M5 20v-8.5a7 7 0 0 1 14 0V20" />
+      <path d="M3 20h18" />
+      <circle cx="12" cy="13.5" r="1.6" fill="currentColor" stroke="none" />
     </svg>
   );
 }
 
-export function BookIcon({ size, ...p }: P) {
+/** Today: the sun on the horizon. */
+export function TodayIcon({ size, ...p }: P) {
   return (
-    <svg {...base(size)} {...p}>
-      <path d="M5 4.5h10.5A3.5 3.5 0 0 1 19 8v11.5H8.5A3.5 3.5 0 0 1 5 16z" strokeLinejoin="round" />
-      <path d="M5 16a3.5 3.5 0 0 1 3.5-3.5H19M9 8h6" />
+    <svg {...base(size)} strokeWidth={1.6} {...p}>
+      <path d="M3 17.5h18M6.5 20.5h11" />
+      <path d="M7 17.5a5 5 0 0 1 10 0" />
+      <circle cx="12" cy="6" r="1.6" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function PlannerIcon({ size, ...p }: P) {
+  return (
+    <svg {...base(size)} strokeWidth={1.6} {...p}>
+      <rect x="3.5" y="5" width="17" height="15.5" rx="3.5" />
+      <path d="M8 3v3.5M16 3v3.5M3.5 10.5h17" />
+      <rect x="13.6" y="13.6" width="3.4" height="3.4" rx="0.8" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function StackIcon({ size, ...p }: P) {
+  return (
+    <svg {...base(size)} strokeWidth={1.6} {...p}>
+      <path d="M12 3.8 20.5 8 12 12.2 3.5 8z" fill="currentColor" fillOpacity={0.9} />
+      <path d="m3.5 12.2 8.5 4.2 8.5-4.2M3.5 16.2l8.5 4.2 8.5-4.2" />
+    </svg>
+  );
+}
+
+export function DiaryIcon({ size, ...p }: P) {
+  return (
+    <svg {...base(size)} strokeWidth={1.6} {...p}>
+      <path d="M6 3.8h11a2 2 0 0 1 2 2v14.4H8a2 2 0 0 1-2-2z" />
+      <path d="M6 17.8a2 2 0 0 1 2-2h11" />
+      <path d="M10 3.8v6.4l1.6-1.2 1.6 1.2V3.8" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Insights: Review, Activities and Goals live under it. */
+export function InsightsIcon({ size, ...p }: P) {
+  return (
+    <svg {...base(size)} strokeWidth={1.6} {...p}>
+      <path d="M3.5 19.5h17" />
+      <path d="m4.5 15 4.5-5 3.5 3 6.5-7" />
+      <circle cx="19" cy="6" r="1.8" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** Review: a ring partly filled, like the scores. */
+export function ReviewIcon({ size, ...p }: P) {
+  return (
+    <svg {...base(size)} strokeWidth={1.6} {...p}>
+      <circle cx="12" cy="12" r="8" opacity={0.35} />
+      <path d="M12 4a8 8 0 0 1 7.6 10.5" strokeWidth={2.4} />
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** Activities: colour swatches of different lengths. */
+export function SwatchIcon({ size, ...p }: P) {
+  return (
+    <svg {...base(size)} strokeWidth={1.6} {...p}>
+      <rect x="3.5" y="4.5" width="17" height="4" rx="2" />
+      <rect x="3.5" y="10.5" width="12" height="4" rx="2" fill="currentColor" stroke="none" />
+      <rect x="3.5" y="16.5" width="7.5" height="4" rx="2" />
+    </svg>
+  );
+}
+
+/** Goals: a target (the flag belongs to one-minute moments on the timeline). */
+export function TargetIcon({ size, ...p }: P) {
+  return (
+    <svg {...base(size)} strokeWidth={1.6} {...p}>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="4.5" />
+      <circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** Settings: two sliders. */
+export function SlidersIcon({ size, ...p }: P) {
+  return (
+    <svg {...base(size)} strokeWidth={1.6} {...p}>
+      <path d="M4 8h16M4 16h16" />
+      <circle cx="9" cy="8" r="2.4" fill="var(--bg)" />
+      <circle cx="15" cy="16" r="2.4" fill="currentColor" />
     </svg>
   );
 }
@@ -65,48 +143,10 @@ export function CalendarIcon({ size, ...p }: P) {
   );
 }
 
-export function ChartIcon({ size, ...p }: P) {
-  return (
-    <svg {...base(size)} {...p}>
-      <rect x="3" y="11" width="4.5" height="9" rx="1" fill="currentColor" stroke="none" />
-      <rect x="9.75" y="6" width="4.5" height="14" rx="1" fill="currentColor" stroke="none" />
-      <rect x="16.5" y="3" width="4.5" height="17" rx="1" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
 export function FolderIcon({ size, ...p }: P) {
   return (
     <svg {...base(size)} {...p}>
       <path d="M2.5 6.5a1.5 1.5 0 0 1 1.5-1.5h5.2l2 2.3H20a1.5 1.5 0 0 1 1.5 1.5v9.2a1.5 1.5 0 0 1-1.5 1.5H4a1.5 1.5 0 0 1-1.5-1.5z" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-export function GridIcon({ size, ...p }: P) {
-  return (
-    <svg {...base(size)} {...p}>
-      {[3.5, 13].map((x) =>
-        [3.5, 13].map((y) => <rect key={`${x}-${y}`} x={x} y={y} width="7.5" height="7.5" rx="1.6" fill="currentColor" stroke="none" />),
-      )}
-    </svg>
-  );
-}
-
-export function FlagIcon({ size, ...p }: P) {
-  return (
-    <svg {...base(size)} {...p}>
-      <path d="M5 21V4" strokeWidth={2.2} />
-      <path d="M5 4h12.5l-2.5 4.5 2.5 4.5H5z" fill="currentColor" />
-    </svg>
-  );
-}
-
-export function GearIcon({ size, ...p }: P) {
-  return (
-    <svg {...base(size)} {...p}>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   );
 }

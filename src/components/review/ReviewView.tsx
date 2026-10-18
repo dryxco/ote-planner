@@ -17,7 +17,7 @@ import {
 import { ChevronRight, HistoryIcon } from "@/components/icons";
 import { PeriodBar, TabHeader } from "@/components/period";
 import { Sheet } from "@/components/ui";
-import { ActivityBar, BigStat, Legend } from "@/components/stats-ui";
+import { ActivityRow, Legend, ScoreCard } from "@/components/stats-ui";
 
 const PREV_LABEL: Record<PeriodKind, string> = { week: "last week", month: "last month", year: "last year" };
 const CHART_TITLE: Record<PeriodKind, string> = { week: "By weekday", month: "By week", year: "By month" };
@@ -58,45 +58,45 @@ export function ReviewView() {
       />
 
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(var(--tabbar-h)+48px)]">
-        <div className="flex justify-center gap-12 pb-2 pt-1">
-          <BigStat label="On time" value={cur.sync} prev={prev.sync} prevLabel={PREV_LABEL[kind]} />
-          <BigStat label="Attainment" value={cur.attainment} prev={prev.attainment} prevLabel={PREV_LABEL[kind]} />
+        <div className="flex gap-2.5 pt-3">
+          <ScoreCard label="On time" value={cur.sync} prev={prev.sync} prevLabel={PREV_LABEL[kind]} />
+          <ScoreCard label="Done" value={cur.attainment} prev={prev.attainment} prevLabel={PREV_LABEL[kind]} />
         </div>
 
-        <h3 className="mt-5 text-[13px] text-fg/50">{CHART_TITLE[kind]}</h3>
-        <BarChart buckets={cur.buckets} />
-
-        <div className="mt-7 flex items-center justify-between text-[14px]">
-          <span className="text-fg/55">Days with a plan</span>
-          <span className="font-semibold tabular">
-            {cur.daysWithPlan}/{cur.totalDays}
-          </span>
+        <div className="mt-2.5 rounded-[16px] bg-surface px-3.5 pb-3 pt-3.5">
+          <div className="flex items-baseline justify-between">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.11em] text-fg/45">{CHART_TITLE[kind]} · on time</h3>
+            <span className="text-[11.5px] text-fg/50 tabular">
+              Days with a plan <span className="font-semibold text-fg">{cur.daysWithPlan}/{cur.totalDays}</span>
+            </span>
+          </div>
+          <BarChart buckets={cur.buckets} />
         </div>
-        <div className="mt-3 h-px bg-fg/[0.08]" />
 
-        <div className="mt-4">
-          <ActivityBar name="All" stat={cur} actual={cur.actual} />
-          <div className="mt-2 flex gap-3 text-[10px] text-fg/50">
+        <div className="mt-2.5 rounded-[16px] bg-surface px-3.5 pb-4 pt-3.5">
+          <ActivityRow name="All" stat={cur} actual={cur.actual} strong />
+          <div className="mt-2 flex gap-3 pl-5 text-[10.5px] text-fg/50">
             <Legend color="var(--matched)" label="Matched plan" />
             <Legend color="var(--elsewhere)" label="At another time" />
           </div>
-        </div>
-
-        <div className="mt-6 flex flex-col gap-5">
-          {rows.map((r) => {
-            const a = activityOf(activities, r.activityId);
-            return <ActivityBar key={r.activityId} name={a.name} color={a.color} stat={r} actual={r.actual} />;
-          })}
+          {rows.length > 0 && (
+            <div className="mt-4 flex flex-col gap-3.5 border-t border-fg/[0.07] pt-4">
+              {rows.map((r) => {
+                const a = activityOf(activities, r.activityId);
+                return <ActivityRow key={r.activityId} name={a.name} color={a.color} stat={r} actual={r.actual} />;
+              })}
+            </div>
+          )}
         </div>
 
         <button
           onClick={() => setComparing(true)}
-          className="mt-7 flex w-full items-center gap-3 rounded-[14px] bg-surface px-4 py-3 text-left"
+          className="mt-2.5 flex w-full items-center gap-3 rounded-[16px] border border-fg/[0.08] px-4 py-3 text-left hover:bg-fg/[0.03]"
         >
           <HistoryIcon size={18} className="shrink-0 text-fg/80" />
           <span className="min-w-0 flex-1">
             <span className="block text-[14.5px] font-medium">Side by side with the {UNIT[kind]} before</span>
-            <span className="block text-[11px] text-fg/50">Plan &amp; actual for two {UNIT[kind]}s</span>
+            <span className="block text-[11px] text-fg/50">Planned &amp; logged for two {UNIT[kind]}s</span>
           </span>
           <ChevronRight size={14} className="text-fg/35" />
         </button>
@@ -123,29 +123,29 @@ function orderRows(rows: ActivityStat[], activities: { id: string; order: number
 }
 
 
+/** On-time rate per bucket as a stem with a dot on top; buckets with nothing planned show only the baseline. */
 function BarChart({ buckets }: { buckets: ReviewStats["buckets"] }) {
-  const H = 84;
+  const H = 80;
   return (
-    <div className="mt-2 flex gap-[5px]">
+    <div className="mt-3 flex gap-[5px]">
       {buckets.map((b, i) => (
         <div key={i} className="flex min-w-0 flex-1 flex-col items-center">
-          <div className="flex w-full flex-col items-center justify-end" style={{ height: H + 16 }}>
+          <div className="relative w-full" style={{ height: H + 18 }}>
             {b.sync !== null && (
-              <>
-                <span className="mb-1 text-[9px] text-fg/55 tabular">{fmtPct(b.sync)}</span>
-                <div className="w-full bg-[#8e8e8e]" style={{ height: Math.max(2, Math.min(1, b.sync) * H) }} />
-              </>
+              <div className="absolute inset-x-0 bottom-0 flex flex-col items-center" style={{ height: Math.max(8, Math.min(1, b.sync) * H) + 18 }}>
+                <span className="text-[9.5px] font-medium text-fg/60 tabular">{fmtPct(b.sync)}</span>
+                <span className="mt-[3px] h-[9px] w-[9px] shrink-0 rounded-full bg-fg" />
+                <span className="w-[3px] flex-1 rounded-b-[1px] bg-fg/25" />
+              </div>
             )}
           </div>
           <div className="h-px w-full bg-fg/[0.14]" />
-          <span className="mt-1.5 text-[9.5px] text-fg/45">{b.label}</span>
+          <span className="mt-1.5 text-[9.5px] font-medium uppercase text-fg/45">{b.label}</span>
         </div>
       ))}
     </div>
   );
 }
-
-
 
 function CompareSheet({
   kind,
@@ -178,13 +178,13 @@ function CompareSheet({
       </div>
       <div className="overflow-hidden rounded-[14px] bg-surface-2">
         <CompareRow label="On time" a={fmtPct(prev.sync)} b={fmtPct(cur.sync)} />
-        <CompareRow label="Attainment" a={fmtPct(prev.attainment)} b={fmtPct(cur.attainment)} />
+        <CompareRow label="Done" a={fmtPct(prev.attainment)} b={fmtPct(cur.attainment)} />
         <CompareRow label="Planned" a={fmtDuration(prev.planned)} b={fmtDuration(cur.planned)} />
-        <CompareRow label="Actual" a={fmtDuration(prev.actual)} b={fmtDuration(cur.actual)} />
+        <CompareRow label="Logged" a={fmtDuration(prev.actual)} b={fmtDuration(cur.actual)} />
         <CompareRow label="Days with a plan" a={`${prev.daysWithPlan}/${prev.totalDays}`} b={`${cur.daysWithPlan}/${cur.totalDays}`} />
       </div>
 
-      {ids.length > 0 && <h3 className="mb-1.5 mt-6 px-1 text-[13px] text-fg/50">By activity · actual / planned</h3>}
+      {ids.length > 0 && <h3 className="mb-1.5 mt-6 px-1 text-[13px] text-fg/50">By activity · logged / planned</h3>}
       <div className="flex flex-col gap-3">
         {ids.map((id) => {
           const act = activityOf(activities, id);
@@ -201,7 +201,7 @@ function CompareSheet({
               </div>
               <CompareRow label="Time" a={time(p)} b={time(c)} />
               <CompareRow label="On time" a={rate(p)} b={rate(c)} />
-              <CompareRow label="Attainment" a={att(p)} b={att(c)} />
+              <CompareRow label="Done" a={att(p)} b={att(c)} />
             </div>
           );
         })}

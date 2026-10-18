@@ -404,8 +404,7 @@ function DayCell({
         {tall && <span className="text-[10px] font-normal text-fg/55">{"SMTWTFS"[wd]}</span>}
         <span
           className={cx(
-            wd === 0 && "text-[#ff453a]",
-            wd === 6 && "text-[#0a84ff]",
+            isToday && "text-now",
             isToday && !selected && "underline decoration-2 underline-offset-2",
           )}
         >
