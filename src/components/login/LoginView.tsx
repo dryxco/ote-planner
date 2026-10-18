@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { CREDIT } from "@/lib/credits";
 
 type Phase =
   | { kind: "idle" }
@@ -184,6 +185,13 @@ export function LoginView() {
           )}
         </div>
       )}
+
+      <p data-credit className="fixed inset-x-0 bottom-[max(16px,env(safe-area-inset-bottom))] text-center text-[11.5px] text-fg/35">
+        Sync © {CREDIT.year}{" "}
+        <a href={CREDIT.url} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">
+          {CREDIT.author}
+        </a>
+      </p>
     </main>
   );
 }

@@ -36,35 +36,133 @@ through it, and each browser keeps a local copy, so it keeps working offline.
   It uses this machine's Claude Code login, and every change can be undone.
 - **Mac menu bar app**: shows the plan in progress and the time left.
 
-## Run
+## Getting started
+
+It takes about five minutes. You need a computer that stays on while you use Sync (macOS, Linux or
+Windows). Your phone and other devices connect to it.
+
+### 1. Install Node.js
+
+Get Node.js **20.9 or newer** from [nodejs.org](https://nodejs.org) (the LTS version is fine). Check
+that it worked by running this in a terminal:
 
 ```bash
-cp .env.example .env.local   # set SYNC_PASSWORD and SYNC_SECRET (openssl rand -base64 32)
-npm install
-npm run build && npm start   # http://localhost:3000
+node -v      # v20.9.0 or higher
 ```
 
-`npm run dev` works too, on localhost. Behind a proxy, use the production server: the dev server's
-hot-reload websocket fails there and leaves the page blank.
+### 2. Download Sync
+
+With git:
+
+```bash
+git clone https://github.com/dryxco/sync-planner.git
+cd sync-planner
+```
+
+Without git, go to the GitHub page and choose **Code → Download ZIP**, unzip it, and open a terminal
+in that folder.
+
+### 3. Install and set up
+
+```bash
+npm install
+npm run setup
+```
+
+`npm run setup` asks for the password you'll sign in with. Press Enter to have one generated and
+printed instead. It saves the password and an encryption key to `.env.local`. Every other setting
+in [`.env.example`](.env.example) is optional.
+
+### 4. Start it
+
+```bash
+npm run build
+npm start
+```
+
+Open **http://localhost:3000** and sign in with your password. To stop the server, press Ctrl+C in the
+terminal. Later, just run `npm start` again; you only need `npm run build` again after an update.
+
+> Port 3000 taken? Use `npm start -- -p 3001` and open http://localhost:3001.
+
+### 5. First steps in the app
+
+1. **Settings** (the gear icon) → Time: set **Day start time** (when your day begins, e.g. 05:00) and
+   **Week starts on**.
+2. **Activities**: Sync starts with Sleep, Work, Exercise, Reading, Travel, Meal, Commute and Other.
+   Rename them, recolour them, or add your own. Every plan and actual belongs to one.
+3. **Plan your day** (Today, or Home on a computer): tap or drag on empty space in the **Plan** column,
+   choose an activity, and save.
+4. **Record what happened**: do the same in the **Actual** column. Or turn on Settings → Notification
+   defaults → **End confirmation**: when a plan ends, Sync then asks whether you did it (✓ / ✕), and a
+   confirmed plan becomes an actual for you.
+5. **Connect your calendars** (optional): Settings → Accounts. Events then show beside your plans,
+   and you can tap one to make it a plan. See [Calendars](#calendars).
+6. **Check how it went**: **Review** compares plan and actual, and **Goals** fill up from your actuals.
+
+Settings → Data → **Export backup** saves everything as a JSON file at any time.
+
+### 6. Use it on your phone
+
+Your phone has to reach the computer Sync runs on.
+
+- **On the same Wi-Fi**: start the server with `npm start -- -H 0.0.0.0` and open
+  `http://<computer's IP>:3000` on your phone. Anyone on that network can reach the sign-in page, so
+  use a strong password.
+- **From anywhere, privately (recommended)**: use [Tailscale](https://tailscale.com), free for
+  personal use.
+  1. Install it on the computer and on your phone, and sign in to the same account on both.
+  2. On the computer, run `npm start -- -H 127.0.0.1` and `tailscale serve --bg 3000`.
+  3. On your phone, open `https://<computer-name>.<tailnet>.ts.net`. `tailscale serve status` prints
+     the exact address.
+
+  Don't use `tailscale funnel`, which makes it public.
+
+Then add it to your home screen so it opens like an app: on iPhone, Share → **Add to Home Screen**;
+on Android, the menu → **Install app**.
+
+### Updating
+
+```bash
+git pull            # or download the new ZIP and copy your .env.local and .data/ into it
+npm install
+npm run build
+```
+
+Then restart `npm start`. Your data lives in `.data/` and your settings in `.env.local`, and an
+update touches neither.
+
+### Keep it running
+
+`npm start` runs only while its terminal is open. To keep Sync running in the background:
+
+- **macOS**: run it as a launchd service and deploy updates with `scripts/deploy.sh`. See
+  [Run it as a service](#run-it-as-a-service-macos).
+- **Anywhere**: use a process manager such as [pm2](https://pm2.keymetrics.io): `npx pm2 start npm --name sync -- start`.
+
+### Troubleshooting
+
+| What you see | What to do |
+| --- | --- |
+| "No sign-in is set up on this server" | Run `npm run setup`, then restart the server. |
+| Forgot the password | Open `.env.local`, change `SYNC_PASSWORD`, and restart the server. |
+| The page is blank on another device | Use `npm run build && npm start`, not `npm run dev`. |
+| "Can't decrypt saved calendar connections" | `SYNC_SECRET` changed. Put the old value back, or delete `.data/integrations.json` and reconnect your calendars. |
+| `npm install` fails | Check `node -v`: it must be 20.9 or newer. |
+
+## More setup
 
 ### Sign-in
 
 Every page and API needs a session. You can sign in either of these ways:
 
-- **Password**: set `SYNC_PASSWORD`.
+- **Password**: set `SYNC_PASSWORD` (which `npm run setup` does).
 - **A sign-in server of your own**: a device-code sign-in (see the
   [connector protocol](src/lib/server/connectors/README.md#sign-in)). Set `SYNC_LOGIN_URL`, and list
   who may sign in in `SYNC_ALLOWED_USERS`.
 
 If neither is set, nobody can sign in. `SYNC_AUTH=off` turns the sign-in off altogether. Use it only
 on a server nobody else can reach.
-
-### Use it from your other devices
-
-The simplest private setup is [Tailscale](https://tailscale.com): run the server on `127.0.0.1`
-(`next start -H 127.0.0.1`) and expose it with `tailscale serve --bg 3000`. Then open
-`https://<machine>.<tailnet>.ts.net` on any device in your tailnet. Don't use `tailscale funnel`,
-because that makes it public.
 
 `SYNC_ALLOWED_TAILSCALE_USERS` adds a second gate: requests through `tailscale serve` must come from
 one of those Tailscale logins.
@@ -179,6 +277,7 @@ Some scripts need extra setup:
 
 ## License
 
+Copyright © 2026 [dryxco](https://github.com/dryxco). Licensed under
 [PolyForm Noncommercial 1.0.0](LICENSE.md). You can use, change and share Sync for any
 noncommercial purpose: personal use, study, research, hobby projects, and nonprofit, educational or
 government organizations. Commercial use isn't allowed. For that, ask for a separate license.

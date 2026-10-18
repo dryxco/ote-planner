@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CREDIT } from "@/lib/credits";
 import { PROVIDER_LABEL, type CalendarsResponse, type CalendarProvider } from "@/lib/types";
 import { useSync } from "@/lib/store";
 import { useUI } from "@/lib/ui";
@@ -166,6 +167,14 @@ export function SettingsSheet() {
 
       <SectionTitle>Data</SectionTitle>
       <DataSection />
+
+      <p data-credit className="pb-2 pt-6 text-center text-[11.5px] text-fg/35">
+        Sync © {CREDIT.year}{" "}
+        <a href={CREDIT.url} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">
+          {CREDIT.author}
+        </a>{" "}
+        · PolyForm Noncommercial
+      </p>
     </Sheet>
   );
 }
