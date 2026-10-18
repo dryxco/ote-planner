@@ -309,9 +309,10 @@ request needs a session, which you get in one of these ways:
 ```bash
 T=$(mktemp -d)
 SYNC_DATA_DIR=$T SYNC_BIND=127.0.0.1 npx next start -H 127.0.0.1 -p 3320 &
-node scripts/demo-data.mjs http://127.0.0.1:3320     # three weeks of made-up days
+node scripts/demo-data.mjs http://127.0.0.1:3320     # a made-up example day (today)
 open http://127.0.0.1:3320
-node scripts/readme-shots.mjs http://127.0.0.1:3320  # regenerates docs/screenshots/
+# README screenshots: start over with --weeks=3 (Review / Goals need past weeks), then
+node scripts/readme-shots.mjs http://127.0.0.1:3320
 ```
 
 ### Checks

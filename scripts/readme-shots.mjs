@@ -1,6 +1,6 @@
 // Takes the README screenshots (docs/screenshots/) from a THROWAWAY server filled by demo-data.mjs.
 // Server: SYNC_DATA_DIR=<tmp> SYNC_BIND=127.0.0.1 npx next start -H 127.0.0.1 -p 3320
-// usage: node scripts/demo-data.mjs http://127.0.0.1:3320 && node scripts/readme-shots.mjs http://127.0.0.1:3320
+// usage: node scripts/demo-data.mjs http://127.0.0.1:3320 --weeks=3 && node scripts/readme-shots.mjs http://127.0.0.1:3320
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 import path from "node:path";

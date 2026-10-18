@@ -1,10 +1,12 @@
-// Fills a THROWAWAY Sync server with made-up sample data (three weeks of plans and actuals, to-dos,
-// projects, tickets, goals, diary notes) — for trying Sync out and for the README screenshots.
-// usage: SYNC_TEST_SESSION=<cookie> node scripts/demo-data.mjs <base url>
+// Fills a THROWAWAY Sync server with a made-up example day: today's plans and actuals, a few to-dos,
+// a project with tickets, a goal and a diary note — for trying Sync out.
+//   --weeks=3  also the weeks before and after (for the Review / Goals screenshots in the README)
+// usage: SYNC_TEST_SESSION=<cookie> node scripts/demo-data.mjs <base url> [--weeks=3]
 // Never point it at your real server: it adds records next to yours.
 import { randomUUID } from "node:crypto";
 
-const base = process.argv[2] ?? "http://127.0.0.1:3302";
+const base = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? "http://127.0.0.1:3302";
+const weeks = Number(process.argv.find((a) => a.startsWith("--weeks="))?.split("=")[1] ?? 0);
 const cookie = process.env.SYNC_TEST_SESSION ? `sync_session=${process.env.SYNC_TEST_SESSION}` : "";
 const DAY = 86_400_000;
 const today = new Date();
@@ -49,7 +51,7 @@ const routine = (d) => {
         ["Reading", "reading", 21, 30, 22, 30],
       ];
 };
-for (let d = -20; d <= 6; d++) {
+for (let d = weeks ? -7 * weeks + 1 : 0; d <= (weeks ? 6 : 0); d++) {
   for (const [name, act, sh, sm, eh, em] of routine(d)) {
     const s = at(d, sh, sm);
     const e = at(d, eh, em);
@@ -86,7 +88,7 @@ ticket("New logo in the footer", "Done", "complete", { since: 0, campaign: true 
 
 // goals for this and last week, and this month
 const weekStart = T - today.getDay() * DAY;
-for (const ws of [weekStart - 7 * DAY]) {
+for (const ws of weeks ? [weekStart - 7 * DAY] : []) {
   put("goals", { id: randomUUID(), period: "week", periodStart: ws, kind: "time", activityId: "work", target: 25 * 60, createdAt: now });
   put("goals", { id: randomUUID(), period: "week", periodStart: ws, kind: "count", activityId: "exercise", target: 4, createdAt: now });
   put("goals", { id: randomUUID(), period: "week", periodStart: ws, kind: "time", activityId: "reading", target: 5 * 60, createdAt: now });
@@ -107,7 +109,7 @@ const notes = [
   [-6, "Too many meetings. Tomorrow: protect the morning."],
   [-9, "Started the beta plan. Feels doable."],
 ];
-for (const [d, text] of notes) put("diary", { id: randomUUID(), date: T + d * DAY, text, updatedAt: now });
+for (const [d, text] of notes.filter(([d]) => weeks || d === 0)) put("diary", { id: randomUUID(), date: T + d * DAY, text, updatedAt: now });
 
 changes.push({ col: "meta", id: "settings", updatedAt: now, data: { localProjects: [{ id: "local:site", name: "Website", color: "blue" }] } });
 
