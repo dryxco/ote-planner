@@ -13,7 +13,7 @@ const yday = today - 86400e3;
 await ctx.addInitScript((y) => {
   if (localStorage.getItem("sync-store-v1")) return;
   localStorage.setItem("sync-store-v1", JSON.stringify({ version: 1, state: { todos: [
-    { id: "late", name: "Landing page fix", activityId: "work", color: "#2f7fd8", date: y, time: 600, duration: 60, done: false, createdAt: y + 3600e3 },
+    { id: "late", name: "Fix the footer", activityId: "work", color: "#2f7fd8", date: y, time: 600, duration: 60, done: false, createdAt: y + 3600e3 },
     { id: "after", name: "Logged afterwards", activityId: "work", color: "#2f7fd8", date: y, done: false, createdAt: y + 3 * 86400e3 },
   ] } }));
 }, yday);
@@ -42,7 +42,7 @@ await page.reload();
 await page.locator("[data-tasks-panel]").waitFor();
 await page.waitForTimeout(500);
 assert.equal(await page.locator('[data-tasks-panel] [data-task="late"]').count(), 1, "listed once");
-assert.match(await page.locator("[data-tasks-panel]").innerText(), /Carried over[\s\S]*Landing page fix/);
+assert.match(await page.locator("[data-tasks-panel]").innerText(), /Carried over[\s\S]*Fix the footer/);
 console.log("ok - a carried-over task given a time again stays under Carried over");
 
 // yesterday: struck in red with ✕

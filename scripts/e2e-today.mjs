@@ -227,13 +227,13 @@ await step("a to-do with a time range is a dashed tentative actual too; confirmi
   await page.evaluate(() => {
     const raw = JSON.parse(localStorage.getItem("sync-store-v1"));
     const d = new Date(Date.now() - 5 * 3600e3); d.setHours(0, 0, 0, 0);
-    raw.state.todos.push({ id: "tblk", name: "Scenario draft", activityId: "work", color: "#2f7fd8", date: d.getTime(), time: 5 * 60 + 10, duration: 30, done: false, createdAt: 9 });
+    raw.state.todos.push({ id: "tblk", name: "Draft outline", activityId: "work", color: "#2f7fd8", date: d.getTime(), time: 5 * 60 + 10, duration: 30, done: false, createdAt: 9 });
     localStorage.setItem("sync-store-v1", JSON.stringify(raw));
   });
   await page.reload();
   await page.waitForTimeout(800);
   await page.evaluate(() => (document.querySelector("[data-timeline-scroll]").scrollTop = 0));
-  await page.locator('[data-column="actual"] [data-pending][title="Scenario draft"]').first().click();
+  await page.locator('[data-column="actual"] [data-pending][title="Draft outline"]').first().click();
   await page.getByRole("button", { name: "Done as planned" }).click();
   await page.waitForTimeout(200);
   const s = await store();
@@ -241,8 +241,8 @@ await step("a to-do with a time range is a dashed tentative actual too; confirmi
   assert.ok(a, "recorded, linked to the to-do");
   assert.equal(a.end - a.start, 30 * 60e3);
   assert.equal(s.todos.find((t) => t.id === "tblk").done, true, "to-do checked off");
-  assert.equal(s.todos.filter((t) => t.name === "Scenario draft").length, 1, "no extra automatic task");
-  assert.equal(await page.locator('[data-column="actual"] [data-pending][title="Scenario draft"]').count(), 0);
+  assert.equal(s.todos.filter((t) => t.name === "Draft outline").length, 1, "no extra automatic task");
+  assert.equal(await page.locator('[data-column="actual"] [data-pending][title="Draft outline"]').count(), 0);
 });
 
 await step("a timer on a to-do doesn't hide its dashed block (working on it doesn't need a timer)", async () => {

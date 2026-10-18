@@ -50,7 +50,7 @@ test("dragged into No date it stops being carried over, until it's missed again"
 test("a branch stays in its main's project, with its note; old ones lacking them get them back", async () => {
   const { useSync } = await import("./store");
   const s = useSync.getState();
-  const main = s.addTodo({ name: "Qwen test", activityId: "work", color: "#000", campaignId: "c1", note: "n" });
+  const main = s.addTodo({ name: "Draft the outline", activityId: "work", color: "#000", campaignId: "c1", note: "n" });
   const b = useSync.getState().branchTodo(main)!;
   let t = useSync.getState().todos.find((x) => x.id === b)!;
   assert.equal(t.campaignId, "c1");

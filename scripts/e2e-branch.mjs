@@ -11,7 +11,7 @@ await isolateSync(ctx);
 const day = midnight();
 await ctx.addInitScript((t) => {
   if (!localStorage.getItem("sync-store-v1")) localStorage.setItem("sync-store-v1", JSON.stringify({ version: 1, state: { todos: [t] } }));
-}, { id: "m", name: "Scenario", activityId: "work", color: "#2f7fd8", date: day, time: 13 * 60, duration: 60, done: false, createdAt: 1 });
+}, { id: "m", name: "Outline", activityId: "work", color: "#2f7fd8", date: day, time: 13 * 60, duration: 60, done: false, createdAt: 1 });
 const page = await ctx.newPage();
 await page.goto(base + "/");
 await page.locator("[data-tasks-panel]").waitFor();
@@ -23,7 +23,7 @@ let s = await state();
 assert.equal(s.todos.length, 2);
 const b2 = s.todos.find((t) => t.id !== "m");
 assert.equal(b2.branchOf, "m");
-assert.equal(b2.name, "Scenario");
+assert.equal(b2.name, "Outline");
 assert.equal(b2.date, day, "same day");
 assert.equal(b2.time, undefined, "no time on a new branch");
 // branching the branch still hangs off main (no grandchildren)
@@ -43,15 +43,15 @@ assert.deepEqual([...labels].sort(), ["(1/3)", "(2/3)", "(3/3)"]);
 console.log("ok - branch icon duplicates; (n/m) labels; one level only");
 
 // the sheet lists branches; each branch's name is its own (the group stays), times stay independent
-await page.locator('[data-task="m"]').getByText("Scenario").click();
+await page.locator('[data-task="m"]').getByText("Outline").click();
 await page.locator("[data-branches]").waitFor();
 assert.equal(await page.locator("[data-branch-row]").count(), 3);
 assert.match(await page.locator('[data-branch-row="m"]').innerText(), /1\/3[\s\S]*Main[\s\S]*1:00 PM–2:00 PM/);
-await page.getByPlaceholder("Name", { exact: true }).fill("Scenario v2");
+await page.getByPlaceholder("Name", { exact: true }).fill("Outline v2");
 await page.getByRole("button", { name: "Save" }).click();
 s = await state();
-assert.equal(s.todos.find((t) => t.id === "m").name, "Scenario v2");
-assert.ok(s.todos.filter((t) => t.id !== "m").every((t) => t.name === "Scenario"), "branches keep their names");
+assert.equal(s.todos.find((t) => t.id === "m").name, "Outline v2");
+assert.ok(s.todos.filter((t) => t.id !== "m").every((t) => t.name === "Outline"), "branches keep their names");
 assert.ok(s.todos.filter((t) => t.id !== "m").every((t) => t.branchOf === "m"), "still branches of main");
 assert.deepEqual([...(await page.locator("[data-tasks-panel] [data-branch-label]").allInnerTexts())].sort(), ["(1/3)", "(2/3)", "(3/3)"]);
 assert.equal(s.todos.find((t) => t.id === "m").time, 13 * 60);
@@ -59,7 +59,7 @@ assert.equal(s.todos.filter((t) => t.time !== undefined).length, 1, "branches ke
 console.log("ok - names and times per branch; the group stays");
 
 // add from the sheet, delete one (two taps), delete main -> first branch becomes main
-await page.locator('[data-task="m"]').getByText("Scenario v2").click();
+await page.locator('[data-task="m"]').getByText("Outline v2").click();
 await page.getByRole("button", { name: "Add branch" }).click();
 assert.equal(await page.locator("[data-branch-row]").count(), 4);
 await page.getByLabel("Delete branch 4").click();

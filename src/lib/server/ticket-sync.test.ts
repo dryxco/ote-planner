@@ -10,12 +10,12 @@ before(() => {
   process.env.SYNC_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "ticket-sync-"));
 });
 
-const base: TicketNorm = { title: "Crop", status: "Not started", priority: null, estimate: null, due: null };
+const base: TicketNorm = { title: "Resize images", status: "Not started", priority: null, estimate: null, due: null };
 
 test("a status move made there survives a title edit made in Sync", () => {
-  const sync = { ...base, title: "Crop (shift)" };
+  const sync = { ...base, title: "Resize images (2x)" };
   const remote = { ...base, status: "In progress" };
-  assert.deepEqual(mergeTicket(sync, remote, base), { ...base, title: "Crop (shift)", status: "In progress" });
+  assert.deepEqual(mergeTicket(sync, remote, base), { ...base, title: "Resize images (2x)", status: "In progress" });
 });
 
 test("a field changed on both sides: Sync's value", () => {
