@@ -149,6 +149,7 @@ update touches neither.
 | The page is blank on another device | Use `npm run build && npm start`, not `npm run dev`. |
 | "Can't decrypt saved calendar connections" | `SYNC_SECRET` changed. Put the old value back, or delete `.data/integrations.json` and reconnect your calendars. |
 | `npm install` fails | Check `node -v`: it must be 20.9 or newer. |
+| npm warns that `esbuild`, `fsevents` or `unrs-resolver` have install scripts not covered by `allowScripts` | Safe to ignore (newer npm versions say this). Sync builds, runs and passes its tests without them. |
 
 ## More setup
 
