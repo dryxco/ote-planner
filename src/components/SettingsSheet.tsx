@@ -655,13 +655,20 @@ function MenuBarSection() {
 }
 
 function AccountRow() {
-  const [me, setMe] = useState<{ userId: string | null; method: string; email: string | null } | null>(null);
+  const [me, setMe] = useState<{ userId: string | null; method: string; email: string | null; otherDevices?: boolean } | null>(null);
   useEffect(() => {
     fetch("/api/auth/me", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then(setMe)
       .catch(() => {});
   }, []);
+  if (me?.method === "local")
+    return (
+      <Footnote>
+        On this computer Sync opens without signing in.{" "}
+        {me.otherDevices ? "Other devices (your phone) sign in with the password." : "To use it on your phone too, run the installer again and pick a way to connect."}
+      </Footnote>
+    );
   if (me?.method === "off") return <Footnote>Sign-in is off on this server (SYNC_AUTH=off): anyone who can reach it can open Sync.</Footnote>;
   return (
     <>

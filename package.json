@@ -6,7 +6,7 @@
     "setup": "node scripts/setup.mjs",
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node scripts/serve.mjs",
     "lint": "eslint",
     "test": "TZ=Asia/Seoul node --import tsx --test src/lib/*.test.ts src/lib/server/*.test.ts"
   },

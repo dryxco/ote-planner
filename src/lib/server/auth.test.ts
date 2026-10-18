@@ -65,6 +65,22 @@ test("a password session ends when the password sign-in is turned off", async ()
   assert.ok(getSession(id));
 });
 
+test("this computer needs no sign-in only when the server listens on it alone", async () => {
+  const { isLocalRequest } = await import("./auth");
+  const saved = process.env.SYNC_BIND;
+  process.env.SYNC_BIND = "127.0.0.1";
+  assert.ok(isLocalRequest(h({})), "a direct request");
+  assert.ok(isLocalRequest(h({ "x-forwarded-for": "127.0.0.1" })), "Next's own loopback X-Forwarded-For");
+  assert.ok(!isLocalRequest(h({ "tailscale-user-login": "phone@example.com", "x-forwarded-for": "100.1.1.1" })), "relayed by tailscale serve");
+  assert.ok(!isLocalRequest(h({ "x-forwarded-for": "127.0.0.1, 100.64.0.9" })), "a forged loopback before the real hop");
+  process.env.SYNC_BIND = "0.0.0.0";
+  assert.ok(!isLocalRequest(h({})), "listening on the network: anyone could send these headers");
+  delete process.env.SYNC_BIND;
+  assert.ok(!isLocalRequest(h({})), "unknown bind address: no exemption");
+  process.env.SYNC_BIND = saved;
+  if (saved === undefined) delete process.env.SYNC_BIND;
+});
+
 test("tailscale gate is off when no Tailscale allowlist is configured (the sign-in decides)", () => {
   const saved = process.env.SYNC_ALLOWED_TAILSCALE_USERS;
   process.env.SYNC_ALLOWED_TAILSCALE_USERS = "";

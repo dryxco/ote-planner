@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, authOff, getSession, tailscaleGate } from "@/lib/server/auth";
+import { SESSION_COOKIE, authOff, getSession, isLocalRequest, tailscaleGate } from "@/lib/server/auth";
 
 // Paths reachable without a session (still behind the Tailscale gate).
 const PUBLIC = ["/login", "/api/auth/methods", "/api/auth/password", "/api/auth/device/start", "/api/auth/device/poll", "/sw.js"];
@@ -12,7 +12,7 @@ export function proxy(request: NextRequest) {
   if (denied) {
     return new NextResponse(`Access denied: ${denied}`, { status: 403, headers: { "content-type": "text/plain; charset=utf-8" } });
   }
-  if (PUBLIC.includes(pathname) || authOff()) return NextResponse.next();
+  if (PUBLIC.includes(pathname) || authOff() || isLocalRequest(request.headers)) return NextResponse.next();
   // The Mac menu bar app (tools/menubar) can't sign in; it sends a bearer token that the route
   // itself verifies. Only this one read-only route accepts it.
   if (pathname === "/api/now" && request.headers.has("authorization")) return NextResponse.next();

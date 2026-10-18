@@ -4,8 +4,13 @@
 //   * the password in SYNC_PASSWORD (single user), or
 //   * a device-code sign-in with a server of your own (SYNC_LOGIN_URL, connectors/index.ts) whose
 //     user id / email is on SYNC_ALLOWED_USERS. Sync keeps no access to that server afterwards.
-//   Neither configured = nobody can sign in (fails closed). SYNC_AUTH=off turns the gate off
-//   altogether — only for a server nobody else can reach.
+//   Neither configured = nobody can sign in from another device (fails closed).
+// - This computer needs no sign-in when the server listens on it alone (SYNC_BIND=127.0.0.1, which
+//   scripts/serve.mjs sets with -H): then only this computer and `tailscale serve` can connect, and
+//   what `tailscale serve` relays carries Tailscale-User-Login / a non-loopback X-Forwarded-For. On any
+//   other bind address a request from the network could forge those headers (Next only fills in
+//   X-Forwarded-For when it's missing), so every request needs a session there.
+//   SYNC_AUTH=off turns the gate off altogether — only for a server nobody else can reach.
 // - Optional extra gate: if SYNC_ALLOWED_TAILSCALE_USERS is set, requests through `tailscale serve`
 //   must come from one of those Tailscale logins.
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
@@ -46,6 +51,18 @@ export const allowedUsers = () => list(process.env.SYNC_ALLOWED_USERS);
 export const allowedTailscale = () => list(process.env.SYNC_ALLOWED_TAILSCALE_USERS);
 
 export const authOff = () => process.env.SYNC_AUTH === "off";
+
+/** The server accepts connections from this computer only (see the top of this file). */
+export const boundToLoopback = () => ["127.0.0.1", "localhost", "::1"].includes((process.env.SYNC_BIND ?? "").trim());
+
+/** A request made on this computer, when that can be told for sure: no sign-in needed. */
+export function isLocalRequest(headers: Headers): boolean {
+  if (!boundToLoopback() || headers.has("tailscale-user-login")) return false;
+  return (headers.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .every((ip) => !ip || LOOPBACK.has(ip));
+}
 export const passwordLogin = () => !!process.env.SYNC_PASSWORD;
 
 /** Constant-time check of the SYNC_PASSWORD login. */
