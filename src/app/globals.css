@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+:root {
+  /* height the floating tab bar takes from the bottom edge (incl. the home-indicator area) */
+  --tabbar-h: calc(max(10px, env(safe-area-inset-bottom)) + 62px);
+
+  /* dark (default) */
+  --bg: #000000;
+  --fg: #ffffff;
+  --surface-0: #141416;
+  --surface: #1c1c1e;
+  --surface-2: #2c2c2e;
+  --surface-3: #3a3a3c;
+  --block: #0c0c0d; /* plan block fill */
+  --seg-active: #5a5a5e;
+  --toggle-off: #39393d;
+  --line: rgba(255, 255, 255, 0.09); /* hour lines */
+  --cell-line: rgba(255, 255, 255, 0.05); /* 10-minute lines */
+  --outline-mix: #d8d8dc; /* plan outlines: activity color mixed toward this */
+  --link: #409cff;
+  --danger-soft: #ff8a80;
+  --dim: rgba(0, 0, 0, 0.35); /* timeline after the day close */
+  --matched: #d8d8dc; /* review bars: matched plan */
+  --elsewhere: #76767c; /* review bars: at another time */
+  --track: #121214; /* progress bar track */
+  --marker-ring: #000000; /* ring around the now badge */
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --text: var(--fg);
+  --text-2: rgba(235, 235, 245, 0.62);
+  --text-3: rgba(235, 235, 245, 0.32);
+  --accent: #0a84ff;
+  --danger: #ff453a;
+  --now: #ff3b30;
+  --sun: #ff453a;
+  --sat: #0a84ff;
+  color-scheme: dark;
+}
+
+/* light (iOS light palette) — set by the theme script in layout.tsx */
+:root[data-theme="light"] {
+  --bg: #ebebeb;
+  --fg: #000000;
+  --surface-0: #f5f5f5;
+  --surface: #ffffff;
+  --surface-2: #e3e3e3;
+  --surface-3: #d6d6d6;
+  --block: #ffffff;
+  --seg-active: #ffffff;
+  --toggle-off: #dcdcdc;
+  --line: rgba(0, 0, 0, 0.1);
+  --cell-line: rgba(0, 0, 0, 0.05);
+  --outline-mix: #3a3a3a;
+  --link: #007aff;
+  --danger-soft: #d70015;
+  --dim: rgba(0, 0, 0, 0.05);
+  --matched: #484848;
+  --elsewhere: #ababab;
+  --track: #dfdfdf;
+  --marker-ring: #ebebeb;
+  --line-strong: rgba(0, 0, 0, 0.14);
+  --text-2: rgba(0, 0, 0, 0.55);
+  --text-3: rgba(0, 0, 0, 0.28);
+  --accent: #007aff;
+  --danger: #ff3b30;
+  --sat: #007aff;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-surface-0: var(--surface-0);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-block: var(--block);
+  --color-seg-active: var(--seg-active);
+  --color-toggle-off: var(--toggle-off);
+  --color-link: var(--link);
+  --color-danger-soft: var(--danger-soft);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --color-now: var(--now);
+  --color-sun: var(--sun);
+  --color-sat: var(--sat);
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-sheet {
+  animation: sheet-up 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+/* point-in-time flags wave a little */
+@keyframes flag-wave {
+  0%,
+  100% {
+    transform: skewY(0deg) scaleX(1);
+  }
+  50% {
+    transform: skewY(-5deg) scaleX(0.94);
+  }
+}
+.flag-wave {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: flag-wave 2.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flag-wave {
+    animation: none;
+  }
+}
+
+.animate-fade {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* native pickers rendered as iOS-like pills */
+.pill-input {
+  background: var(--surface-3);
+  border-radius: 8px;
+  padding: 4px 8px;
+  color: var(--text);
+  font-size: 15px;
+  color-scheme: dark;
+}
+.pill-input::-webkit-calendar-picker-indicator {
+  display: none;
+}
