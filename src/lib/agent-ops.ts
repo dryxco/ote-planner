@@ -59,7 +59,7 @@ export async function loadAgentCalendars() {
 }
 function findCalendar(ref: string | null | undefined): string | null | undefined {
   if (ref === undefined) return undefined;
-  if (!ref) return null; // "Sync only"
+  if (!ref) return null; // "Ote only"
   const r = ref.trim().toLowerCase();
   const c =
     calendars.find((x) => x.id === ref) ??

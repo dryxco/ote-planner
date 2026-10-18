@@ -1,4 +1,4 @@
-// Server copy of the user's Sync data (plans, actuals, ...) shared by all devices.
+// Server copy of the user's Ote data (plans, actuals, ...) shared by all devices.
 // One JSON file per user under .data/, written atomically; writes are serialized per process.
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -11,9 +11,9 @@ interface DbFile {
   records: Record<string, StoredRecord>;
 }
 
-/** `.data/` next to the app; SYNC_DATA_DIR overrides it (tests). */
+/** `.data/` next to the app; OTE_DATA_DIR overrides it (tests). */
 function dataDir() {
-  return process.env.SYNC_DATA_DIR || path.join(process.cwd(), ".data");
+  return process.env.OTE_DATA_DIR || path.join(process.cwd(), ".data");
 }
 
 function fileFor(userId: string) {

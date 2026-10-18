@@ -5,11 +5,11 @@ import { checkSameOrigin, readJson } from "@/lib/server/http";
 // a wrong password slows the next attempts down (process memory; a restart resets it)
 const g = globalThis as unknown as { __pwFails?: { n: number; until: number } };
 
-/** POST {password} — sign in with SYNC_PASSWORD. */
+/** POST {password} — sign in with OTE_PASSWORD. */
 export async function POST(request: Request) {
   const guard = checkSameOrigin(request);
   if (guard) return guard;
-  if (!passwordLogin()) return NextResponse.json({ error: "Password sign-in isn't set up (SYNC_PASSWORD)" }, { status: 404 });
+  if (!passwordLogin()) return NextResponse.json({ error: "Password sign-in isn't set up (OTE_PASSWORD)" }, { status: 404 });
   const f = (g.__pwFails ??= { n: 0, until: 0 });
   if (Date.now() < f.until) return NextResponse.json({ error: "Too many tries. Wait a moment" }, { status: 429 });
   const body = await readJson<{ password?: string }>(request);

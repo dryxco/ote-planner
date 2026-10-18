@@ -5,7 +5,7 @@ import { checkSameOrigin, json } from "@/lib/server/http";
 import { invalidate } from "@/lib/server/cache";
 import { getStore, updateStore } from "@/lib/server/store";
 
-/** POST — forget the connection (the connector may revoke its token). What was synced stays in Sync. */
+/** POST — forget the connection (the connector may revoke its token). What was synced stays in Ote. */
 export async function POST(request: Request) {
   const guard = checkSameOrigin(request);
   if (guard) return guard;

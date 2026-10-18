@@ -1,9 +1,9 @@
-// SyncMenuBar: shows the Sync plan in progress and the time left in the macOS menu bar
-// ("● Meeting · 23m"), polling GET /api/now on the Sync server with the menu bar token
+// OteMenuBar: shows the Ote plan in progress and the time left in the macOS menu bar
+// ("● Meeting · 23m"), polling GET /api/now on the Ote server with the menu bar token
 // (Settings → Mac menu bar → Copy menu bar token).
 //
-// Config: ~/Library/Application Support/SyncMenuBar/config.json  {"url": "...", "token": "..."}
-// (SYNC_MENUBAR_CONFIG overrides the path). `SyncMenuBar --print` fetches once, prints the
+// Config: ~/Library/Application Support/OteMenuBar/config.json  {"url": "...", "token": "..."}
+// (OTE_MENUBAR_CONFIG overrides the path). `OteMenuBar --print` fetches once, prints the
 // title and menu, and exits (smoke test without clicking).
 import AppKit
 import ServiceManagement
@@ -31,9 +31,9 @@ struct NowResponse: Decodable {
 }
 
 let configURL: URL = {
-  if let p = ProcessInfo.processInfo.environment["SYNC_MENUBAR_CONFIG"] { return URL(fileURLWithPath: p) }
+  if let p = ProcessInfo.processInfo.environment["OTE_MENUBAR_CONFIG"] { return URL(fileURLWithPath: p) }
   let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-  return support.appendingPathComponent("SyncMenuBar/config.json")
+  return support.appendingPathComponent("OteMenuBar/config.json")
 }()
 
 func loadConfig() -> Config? {
@@ -50,7 +50,7 @@ func saveConfig(_ c: Config) throws {
   enc.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
   // the token reads the user's plans: keep the file private
   guard FileManager.default.createFile(atPath: configURL.path, contents: try enc.encode(c), attributes: [.posixPermissions: 0o600])
-  else { throw NSError(domain: "SyncMenuBar", code: 1, userInfo: [NSLocalizedDescriptionKey: "Couldn't write \(configURL.path)"]) }
+  else { throw NSError(domain: "OteMenuBar", code: 1, userInfo: [NSLocalizedDescriptionKey: "Couldn't write \(configURL.path)"]) }
 }
 
 /** "23m" under an hour, "1h 20m" above; rounded up so the last minute shows "1m", not "0m". */
@@ -86,7 +86,7 @@ enum State {
 
 func fetchNow(_ c: Config, completion: @escaping (Result<NowResponse, Error>) -> Void) {
   let fail = { (msg: String) in
-    completion(.failure(NSError(domain: "SyncMenuBar", code: 0, userInfo: [NSLocalizedDescriptionKey: msg])))
+    completion(.failure(NSError(domain: "OteMenuBar", code: 0, userInfo: [NSLocalizedDescriptionKey: msg])))
   }
   guard let url = URL(string: c.url.trimmingCharacters(in: CharacterSet(charactersIn: "/ ")) + "/api/now") else {
     return fail("Invalid URL")
@@ -102,7 +102,7 @@ func fetchNow(_ c: Config, completion: @escaping (Result<NowResponse, Error>) ->
       let detail =
         ((try? JSONSerialization.jsonObject(with: data)) as? [String: Any])?["error"] as? String
         ?? String(data: data.prefix(200), encoding: .utf8) ?? ""
-      return fail(status == 401 ? "Token rejected — copy it again from Sync Settings" : "HTTP \(status) \(detail)")
+      return fail(status == 401 ? "Token rejected — copy it again from Ote Settings" : "HTTP \(status) \(detail)")
     }
     do { completion(.success(try JSONDecoder().decode(NowResponse.self, from: data))) } catch {
       fail("Unexpected response from \(url.host ?? "server")")
@@ -174,7 +174,7 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
         idle(button)
       }
     case .error:
-      button.attributedTitle = NSAttributedString(string: "Sync ⚠︎", attributes: [.font: font])
+      button.attributedTitle = NSAttributedString(string: "Ote ⚠︎", attributes: [.font: font])
     case .needsSetup, .loading:
       idle(button)
     }
@@ -183,7 +183,7 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
   func idle(_ button: NSStatusBarButton) {
     button.attributedTitle = NSAttributedString(string: "")
-    let img = NSImage(systemSymbolName: "calendar.day.timeline.left", accessibilityDescription: "Sync")
+    let img = NSImage(systemSymbolName: "calendar.day.timeline.left", accessibilityDescription: "Ote")
     img?.isTemplate = true
     button.image = img
   }
@@ -202,7 +202,7 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
     case .loading:
       menu.addItem(info("Loading…"))
     case .error(let msg):
-      menu.addItem(info("Couldn't reach Sync"))
+      menu.addItem(info("Couldn't reach Ote"))
       menu.addItem(info(truncated(msg, 80)))
     case .ok(let r, let offset):
       let now = (Date().timeIntervalSince1970 + offset) * 1000
@@ -219,7 +219,7 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
       }
     }
     menu.addItem(.separator())
-    menu.addItem(withTitle: "Open Sync", action: #selector(openSync), keyEquivalent: "o").target = self
+    menu.addItem(withTitle: "Open Ote", action: #selector(openSync), keyEquivalent: "o").target = self
     menu.addItem(withTitle: config == nil ? "Set up…" : "Settings…", action: #selector(setup), keyEquivalent: ",").target = self
     if config != nil {
       menu.addItem(withTitle: "Refresh", action: #selector(refresh), keyEquivalent: "r").target = self
@@ -240,10 +240,10 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
   @objc func setup() {
     let alert = NSAlert()
-    alert.messageText = "Sync menu bar"
-    alert.informativeText = "Paste the token from Sync → Settings → Mac menu bar → Copy menu bar token."
+    alert.messageText = "Ote menu bar"
+    alert.informativeText = "Paste the token from Ote → Settings → Mac menu bar → Copy menu bar token."
     let url = NSTextField(string: config?.url ?? defaultURL)
-    url.placeholderString = "Sync URL"
+    url.placeholderString = "Ote URL"
     let token = NSSecureTextField(string: config?.token ?? "")
     token.placeholderString = "Menu bar token"
     let stack = NSStackView(views: [url, token])
@@ -261,7 +261,7 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
       url: url.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
       token: token.stringValue.trimmingCharacters(in: .whitespacesAndNewlines))
     guard !c.token.isEmpty, let u = URL(string: c.url), u.scheme == "https" || u.scheme == "http" else {
-      return show("Enter the Sync URL (https://…) and the token.")
+      return show("Enter the Ote URL (https://…) and the token.")
     }
     do { try saveConfig(c) } catch { return show(error.localizedDescription) }
     config = c
@@ -275,7 +275,7 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
     do {
       if svc.status == .enabled { try svc.unregister() } else { try svc.register() }
     } catch {
-      show("Couldn't change Launch at Login: \(error.localizedDescription)\nMove SyncMenuBar.app to /Applications and try again.")
+      show("Couldn't change Launch at Login: \(error.localizedDescription)\nMove OteMenuBar.app to /Applications and try again.")
     }
     render()
   }

@@ -1,5 +1,5 @@
-// Writes a Sync session for a THROWAWAY test server's data dir and prints the cookie value.
-// usage: node scripts/make-test-session.mjs <SYNC_DATA_DIR of the test server> <user id on SYNC_ALLOWED_USERS>
+// Writes a Ote session for a THROWAWAY test server's data dir and prints the cookie value.
+// usage: node scripts/make-test-session.mjs <OTE_DATA_DIR of the test server> <user id on OTE_ALLOWED_USERS>
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";

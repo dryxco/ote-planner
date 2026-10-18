@@ -32,7 +32,7 @@ const DEFAULT_SETTINGS: Settings = {
   hiddenEventIds: [],
 };
 
-/** A "#" project made in Sync (see `Settings.localProjects`). */
+/** A "#" project made in Ote (see `Settings.localProjects`). */
 export const isLocalProject = (id: string | undefined) => !!id?.startsWith("local:");
 
 const uid = () =>
@@ -80,14 +80,14 @@ export interface SyncState {
 
   /** A new ticket on a project (on a connector's, the server files it there and assigns it to the owner). */
   addTicket(t: { projectId: string; projectName?: string; title: string }): string;
-  /** A Sync-only "#" project (my own tickets, never sent anywhere); returns its id. */
+  /** A Ote-only "#" project (my own tickets, never sent anywhere); returns its id. */
   addLocalProject(name: string): string;
   /** Rename one of my "#" projects (its tickets follow). */
   renameLocalProject(id: string, name: string): void;
   /** Remove one of my "#" projects; its tickets are hidden (kept in the data) and projects unlink it. */
   deleteLocalProject(id: string): void;
   updateTicket(id: string, patch: Partial<Ticket>): void;
-  /** Remove from Sync only (the board keeps it: a token can't delete tickets). */
+  /** Remove from Ote only (the board keeps it: a token can't delete tickets). */
   hideTicket(id: string): void;
 
   addCampaign(c: Omit<Campaign, "id" | "createdAt">): string;

@@ -1,4 +1,4 @@
-// An in-memory server speaking Sync's REST connector protocol (src/lib/server/connectors/README.md).
+// An in-memory server speaking Ote's REST connector protocol (src/lib/server/connectors/README.md).
 // For tests — and a compact reference for implementing the protocol on your own backend.
 // usage: node scripts/mock-connector.mjs [port=3399]
 // Token: "test-token". Test hooks: GET /_state, POST /_approve {userCode, userId, email}, POST /_reset.

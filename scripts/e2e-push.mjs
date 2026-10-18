@@ -1,7 +1,7 @@
 // Plan alerts API: VAPID public key, subscribe / unsubscribe this device (no real push is sent).
 import assert from "node:assert/strict";
 const base = process.argv[2] ?? "http://127.0.0.1:3123";
-const cookie = `sync_session=${process.env.SYNC_TEST_SESSION}`;
+const cookie = `ote_session=${process.env.OTE_TEST_SESSION}`;
 const api = async (body) => {
   const r = await fetch(base + "/api/push", { method: body ? "POST" : "GET", headers: { cookie, "content-type": "application/json", origin: base }, body: body ? JSON.stringify(body) : undefined });
   return { status: r.status, json: await r.json() };

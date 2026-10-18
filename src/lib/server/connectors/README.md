@@ -1,13 +1,13 @@
 # Connectors
 
-Sync runs on its own: plans, actuals, to-dos, tickets in projects of your own, goals and the diary
-all live in Sync, and calendars come in from Google, iCloud, iCal links or the Mac's Calendar.
+Ote runs on its own: plans, actuals, to-dos, tickets in projects of your own, goals and the diary
+all live in Ote, and calendars come in from Google, iCloud, iCal links or the Mac's Calendar.
 
-A **connector** links Sync to a service you already use: a task board, an issue tracker, a team
+A **connector** links Ote to a service you already use: a task board, an issue tracker, a team
 calendar. It also lets you sign in with that service. A connector supports whichever of these the
 service has:
 
-| Part | What Sync does with it |
+| Part | What Ote does with it |
 | --- | --- |
 | `tasks` | Two-way sync with To-dos. A task that has a start **and** an end time becomes a Plan. |
 | `tickets` | Your assigned tickets show on the Tickets board, and `#project` in the add box files a new one. The ticket sheet shows the description, history and comments when the connector provides them. |
@@ -20,7 +20,7 @@ One connector can be connected at a time (Settings → Connector). Its settings 
 ## Two ways to connect your service
 
 1. **Implement the REST protocol below on your own server.** Then connect it from Settings with the
-   built-in **REST server** connector. You don't change any Sync code.
+   built-in **REST server** connector. You don't change any Ote code.
 2. **Write a connector in TypeScript.** Implement `ConnectorDef` from [`types.ts`](./types.ts) and
    add it to `CONNECTORS` in [`index.ts`](./index.ts). Use this when the service has its own API,
    such as Todoist, Linear or GitHub Issues. [`rest.ts`](./rest.ts) is a complete example.
@@ -29,20 +29,20 @@ One connector can be connected at a time (Settings → Connector). Its settings 
 
 The sync engines are `task-sync.ts` and `ticket-sync.ts`, one level up from this folder.
 
-- **Interval:** they run every minute, and a few seconds after something changes in Sync.
+- **Interval:** they run every minute, and a few seconds after something changes in Ote.
 - **Merging:** each run is a 3-way merge against a snapshot of the last good run, so your service
-  doesn't need change timestamps. If both sides changed the same thing, Sync's edit wins. For
+  doesn't need change timestamps. If both sides changed the same thing, Ote's edit wins. For
   tickets, the merge works field by field.
-- **Ids:** a task made in Sync is created on your service with Sync's id, a UUID. Keep that id. If
+- **Ids:** a task made in Ote is created on your service with Ote's id, a UUID. Keep that id. If
   your service needs its own ids, set `acceptsId` and keep a mapping.
-- **Deleting:** deleting in Sync calls `remove`, and you can archive instead of deleting. A task that
-  disappears from your list, or shows up in `archivedIds`, is deleted in Sync. If your list can be
+- **Deleting:** deleting in Ote calls `remove`, and you can archive instead of deleting. A task that
+  disappears from your list, or shows up in `archivedIds`, is deleted in Ote. If your list can be
   cut off, return `complete: false` so nothing is taken as deleted.
 - **Rate limits:** `maxWritesPerRun` caps the writes per run. The defaults are 40 for tasks and 20
   for tickets.
 - **Rollover:** if your board moves unfinished past tasks to today on its own, set `rollsOver`.
-  Sync then keeps a past plan on its day.
-- **Projects:** to map your service's projects to Sync activities, put
+  Ote then keeps a past plan on its day.
+- **Projects:** to map your service's projects to Ote activities, put
   `[{ "activity": "Work", "project_id": "…" }]` in `.data/task-projects.json`.
 
 ## REST protocol
@@ -62,7 +62,7 @@ the whole protocol in memory and is the reference implementation.
 
 `features` lists the parts the server supports. `timeZone` is the zone of the task dates and times.
 
-`DELETE /me/token` is optional. Sync calls it on disconnect so you can revoke the token.
+`DELETE /me/token` is optional. Ote calls it on disconnect so you can revoke the token.
 
 ### Tasks
 
@@ -79,7 +79,7 @@ A task looks like this:
 | Request | Body | Response |
 | --- | --- | --- |
 | `GET /tasks` | — | `{ "tasks": [Task], "archivedIds": ["…"], "complete": true }`, with open and recently done tasks in `tasks` |
-| `POST /tasks` | Task (with Sync's `id`) | the task |
+| `POST /tasks` | Task (with Ote's `id`) | the task |
 | `PATCH /tasks/:id` | any task fields, plus `"archived": false` to bring an archived task back | the task |
 | `DELETE /tasks/:id` | — | — (archive or delete it) |
 
@@ -98,7 +98,7 @@ A ticket looks like this:
 ```
 
 - `statusGroup` is one of `to_do`, `in_progress`, `complete` or `backlog`.
-- `containerId` is opaque to Sync. Use it for a board id, a repository, or whatever you need to find
+- `containerId` is opaque to Ote. Use it for a board id, a repository, or whatever you need to find
   the ticket again.
 - Times are in milliseconds.
 
@@ -130,12 +130,12 @@ The rest is optional and only used by the ticket sheet. Descriptions are
 
 ### Sign-in
 
-Set `SYNC_LOGIN_URL` to the base URL. These two endpoints don't need a token.
+Set `OTE_LOGIN_URL` to the base URL. These two endpoints don't need a token.
 
 | Request | Body | Response |
 | --- | --- | --- |
 | `POST /auth/device/start` | `{ client }` | `{ deviceCode, userCode, verificationUri, expiresIn, interval }` |
 | `POST /auth/device/poll` | `{ deviceCode }` | `{ "status": "pending" }`, `{ "status": "expired" }` or `{ "status": "ok", "userId", "email" }` |
 
-The person opens `verificationUri` and approves `userCode`. Sync then starts a session if `userId`
-or `email` is on `SYNC_ALLOWED_USERS`. Sync keeps no access to your server after that.
+The person opens `verificationUri` and approves `userCode`. Ote then starts a session if `userId`
+or `email` is on `OTE_ALLOWED_USERS`. Ote keeps no access to your server after that.

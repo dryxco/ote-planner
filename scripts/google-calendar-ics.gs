@@ -1,13 +1,13 @@
 /**
  * Google Apps Script: serve any Google calendar you can see (including ones shared with you) as a
- * private iCal feed for Sync — no OAuth client needed.
+ * private iCal feed for Ote — no OAuth client needed.
  *
  * Setup (once):
  *  1. script.google.com → New project → paste this file → set KEY below to a long random string.
  *  2. Deploy → New deployment → type "Web app" → Execute as: Me → Who has access: Anyone → Deploy
  *     (allow the calendar permission it asks for).
  *  3. Open  <web app URL>?key=KEY            → lists your calendars and their ids
- *     Feed: <web app URL>?key=KEY&cal=<id>   → paste into Sync → Add calendar by iCal link
+ *     Feed: <web app URL>?key=KEY&cal=<id>   → paste into Ote → Add calendar by iCal link
  */
 var KEY = "CHANGE-ME-to-a-long-random-string";
 var DAYS_BACK = 60;
@@ -45,7 +45,7 @@ function toPlain(ev) {
   };
 }
 
-/** Pure ICS builder (also exercised by Sync's tests). Recurring events arrive already expanded. */
+/** Pure ICS builder (also exercised by Ote's tests). Recurring events arrive already expanded. */
 function buildIcs(name, color, events) {
   function pad(n) {
     return (n < 10 ? "0" : "") + n;
@@ -59,7 +59,7 @@ function buildIcs(name, color, events) {
   function esc(s) {
     return String(s || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
   }
-  var out = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Sync//Google Apps Script//EN", "CALSCALE:GREGORIAN", "X-WR-CALNAME:" + esc(name)];
+  var out = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Ote//Google Apps Script//EN", "CALSCALE:GREGORIAN", "X-WR-CALNAME:" + esc(name)];
   if (color && /^#[0-9a-f]{6}$/i.test(color)) out.push("X-APPLE-CALENDAR-COLOR:" + color);
   var stamp = utc(new Date());
   events.forEach(function (ev) {

@@ -56,12 +56,12 @@ export async function isolateSync(ctx) {
   await withTestSession(ctx);
 }
 
-/** Sign the context in with SYNC_TEST_SESSION (from make-test-session.mjs) and SYNC_TEST_BASE. */
+/** Sign the context in with OTE_TEST_SESSION (from make-test-session.mjs) and OTE_TEST_BASE. */
 export async function withTestSession(ctx) {
-  const value = process.env.SYNC_TEST_SESSION;
+  const value = process.env.OTE_TEST_SESSION;
   if (!value) return;
-  const url = process.env.SYNC_TEST_BASE ?? "http://127.0.0.1:3000";
-  await ctx.addCookies([{ name: "sync_session", value, url }]);
+  const url = process.env.OTE_TEST_BASE ?? "http://127.0.0.1:3000";
+  await ctx.addCookies([{ name: "ote_session", value, url }]);
 }
 
 /** Open the new-entry sheet by clicking an empty spot of the Plan column (first free row from 07:00). */

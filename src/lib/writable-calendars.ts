@@ -17,7 +17,7 @@ export function loadCalendars(): Promise<CalendarInfo[]> {
   return allCals;
 }
 
-/** This Mac's calendars Sync may add events to. */
+/** This Mac's calendars Ote may add events to. */
 export function loadWritableCalendars(): Promise<CalendarInfo[]> {
   return loadCalendars().then((cs) => cs.filter((c) => c.provider === "mac" && c.writable));
 }

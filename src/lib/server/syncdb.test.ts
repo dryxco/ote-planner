@@ -7,7 +7,7 @@ import { _resetSyncCache, syncUser, type Applied } from "./syncdb";
 
 const tmp = mkdtempSync(path.join(os.tmpdir(), "syncdb-"));
 before(() => {
-  process.env.SYNC_DATA_DIR = tmp;
+  process.env.OTE_DATA_DIR = tmp;
 });
 
 test("two devices converge; last write wins; deletes propagate", async () => {

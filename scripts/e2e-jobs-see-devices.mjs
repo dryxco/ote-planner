@@ -1,13 +1,13 @@
 // The background jobs see what devices save (production build only: there the jobs and the API
 // routes were separate bundles with separate copies of the sync data). Once, the jobs' stale copy
-// made the task sync archive to-dos made since on the board, and then delete them in Sync.
-// Server: NODE_ENV=production next start (jobs on) with SYNC_DATA_DIR=<tmp>, SYNC_ALLOWED_USERS=good-user
+// made the task sync archive to-dos made since on the board, and then delete them in Ote.
+// Server: NODE_ENV=production next start (jobs on) with OTE_DATA_DIR=<tmp>, OTE_ALLOWED_USERS=good-user
 // and scripts/mock-connector.mjs running.
 // usage: node scripts/e2e-jobs-see-devices.mjs <base> <mock>
 import assert from "node:assert/strict";
 
 const [base, mock] = process.argv.slice(2);
-const cookie = `sync_session=${process.env.SYNC_TEST_SESSION}`;
+const cookie = `ote_session=${process.env.OTE_TEST_SESSION}`;
 const api = async (path, body) => {
   const r = await fetch(base + path, { method: "POST", headers: { cookie, "content-type": "application/json", origin: base }, body: JSON.stringify(body) });
   return r.json().catch(() => null);

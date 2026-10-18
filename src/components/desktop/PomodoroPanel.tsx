@@ -12,7 +12,7 @@ import { cx } from "../ui";
 const LENGTHS = [15, 25, 50];
 
 /**
- * Desktop centre-bottom: a pomodoro on top of Sync's timer. Starting it runs the regular timer with
+ * Desktop centre-bottom: a pomodoro on top of Ote's timer. Starting it runs the regular timer with
  * a target end; when the time is up the timer stops itself and the session is recorded as an actual
  * (Reminders also does this if the panel isn't open). The dial's red sector is the time left.
  */

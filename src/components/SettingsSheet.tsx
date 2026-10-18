@@ -169,7 +169,7 @@ export function SettingsSheet() {
       <DataSection />
 
       <p data-credit className="pb-2 pt-6 text-center text-[11.5px] text-fg/35">
-        Sync © {CREDIT.year}{" "}
+        Ote © {CREDIT.year}{" "}
         <a href={CREDIT.url} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">
           {CREDIT.author}
         </a>{" "}
@@ -428,12 +428,12 @@ function Accounts({ cal, onChanged }: { cal: CalendarsResponse | null; onChanged
             <Footnote>
               <b>Google Calendar</b> — on a computer open calendar.google.com → ⚙ Settings → under &quot;Settings for my calendars&quot;
               pick the calendar → <b>Integrate calendar</b> → copy <b>&quot;Secret address in iCal format&quot;</b> and paste it above.
-              Repeat for each calendar. Read-only, refreshed every few minutes; the link is stored encrypted on the Sync server only.
+              Repeat for each calendar. Read-only, refreshed every few minutes; the link is stored encrypted on the Ote server only.
             </Footnote>
           ) : (
             <Footnote>
               Any calendar with an iCal (.ics / webcal://) link. Read-only, refreshed every few minutes; the link is stored encrypted on
-              the Sync server only.
+              the Ote server only.
             </Footnote>
           )}
           <BigButton onClick={addIcs} disabled={busy || !icsUrl.trim()}>
@@ -479,10 +479,10 @@ function DataSection() {
   function exportData() {
     const s = useSync.getState();
     const data = { activities: s.activities, plans: s.plans, actuals: s.actuals, todos: s.todos, goals: s.goals, settings: s.settings };
-    const blob = new Blob([JSON.stringify({ app: "sync", version: 1, data }, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify({ app: "ote", version: 1, data }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `sync-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `ote-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   }
@@ -490,7 +490,7 @@ function DataSection() {
     file.text().then((txt) => {
       try {
         const parsed = JSON.parse(txt) as { app?: string; data?: Record<string, unknown> };
-        if (parsed.app !== "sync" || !parsed.data) throw new Error("Not a Sync backup file.");
+        if (parsed.app !== "ote" || !parsed.data) throw new Error("Not a Ote backup file.");
         useSync.setState(parsed.data as Partial<ReturnType<typeof useSync.getState>>);
         setMsg("Import complete");
       } catch (e) {
@@ -562,8 +562,8 @@ function PlanAlerts() {
       </Group>
       <Footnote>
         {msg ? `${msg} ` : ""}
-        10 minutes before each plan and when it ends, even when Sync is closed. Turn this on only on your iPhone
-        {supported && !standalone ? " (open Sync from its Home Screen icon first)" : ""} — Apple Watch, and a Mac with iPhone
+        10 minutes before each plan and when it ends, even when Ote is closed. Turn this on only on your iPhone
+        {supported && !standalone ? " (open Ote from its Home Screen icon first)" : ""} — Apple Watch, and a Mac with iPhone
         Mirroring, show the same alert, so nothing arrives twice.
       </Footnote>
     </>
@@ -590,7 +590,7 @@ function NotificationPermission() {
           )}
         </Row>
       </Group>
-      <Footnote>Reminders and end confirmations fire while Sync is open in a tab. Without permission they show as banners.</Footnote>
+      <Footnote>Reminders and end confirmations fire while Ote is open in a tab. Without permission they show as banners.</Footnote>
     </>
   );
 }
@@ -610,7 +610,7 @@ function SyncStatusRow() {
       </Group>
       <Footnote>
         {error ??
-          "Plans, actuals, to-dos, goals and settings are saved on the Sync server and appear on every device that opens this app. Edits made offline sync when the connection is back."}
+          "Plans, actuals, to-dos, goals and settings are saved on the Ote server and appear on every device that opens this app. Edits made offline sync when the connection is back."}
       </Footnote>
     </>
   );
@@ -638,14 +638,14 @@ function MenuBarSection() {
           className="flex min-h-[46px] w-full items-center justify-between gap-3 border-b border-fg/[0.08] px-4 text-[15px] text-link"
         >
           Download for Mac
-          <span className="text-[12px] text-fg/45">SyncMenuBar.zip</span>
+          <span className="text-[12px] text-fg/45">OteMenuBar.zip</span>
         </a>
         <Row label={<span className="text-link">Copy menu bar token</span>} onClick={() => void copyToken()}>
           {msg === "Copied ✓" && <span className="text-[13px] text-fg/50">{msg}</span>}
         </Row>
       </Group>
       <Footnote>
-        The Sync menu bar app shows the plan in progress and the time left. Download, unzip, move it to Applications and open
+        The Ote menu bar app shows the plan in progress and the time left. Download, unzip, move it to Applications and open
         it (the first time: right-click → Open). Then choose “Set up…” and paste the token — it only lets the app read your
         current and next plan. That Mac needs to reach this server.
       </Footnote>
@@ -665,11 +665,11 @@ function AccountRow() {
   if (me?.method === "local")
     return (
       <Footnote>
-        On this computer Sync opens without signing in.{" "}
+        On this computer Ote opens without signing in.{" "}
         {me.otherDevices ? "Other devices (your phone) sign in with the password." : "To use it on your phone too, run the installer again and pick a way to connect."}
       </Footnote>
     );
-  if (me?.method === "off") return <Footnote>Sign-in is off on this server (SYNC_AUTH=off): anyone who can reach it can open Sync.</Footnote>;
+  if (me?.method === "off") return <Footnote>Sign-in is off on this server (OTE_AUTH=off): anyone who can reach it can open Ote.</Footnote>;
   return (
     <>
       <Group>
@@ -771,7 +771,7 @@ function ConnectorSection({ onChanged }: { onChanged: () => void }) {
         </Group>
         <Footnote>
           {def.description ?? def.label} Keeps your to-dos and timed plans in step with its task board, your assigned tickets on the Tickets board,
-          and shows its calendars — whatever the service supports. Sync works the same without it.
+          and shows its calendars — whatever the service supports. Ote works the same without it.
         </Footnote>
         <BigButton
           onClick={() =>

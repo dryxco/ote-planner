@@ -117,7 +117,7 @@ function useMetaState<T>(pick: () => T): T {
   }, []);
   return pick();
 }
-/** The connector's projects and options, plus my Sync-only projects (usable before / without one). */
+/** The connector's projects and options, plus my Ote-only projects (usable before / without one). */
 export function useTicketMeta(): TicketMeta | null {
   const remote = useMetaState(() => meta);
   const local = useSync((s) => s.settings.localProjects);
@@ -194,12 +194,12 @@ export function projectTree(meta: TicketMeta | null, use: Map<string, number> = 
   return out;
 }
 
-/** Picker row that makes a new Sync-only project named after the query. */
+/** Picker row that makes a new Ote-only project named after the query. */
 export const NEW_PROJECT = "new:";
 
 /**
- * The "#" list: the connector's projects (sub-projects under their parent) and my Sync-only ones, filtered by
- * what follows the "#"; a name nothing has yet offers to create it (Sync only).
+ * The "#" list: the connector's projects (sub-projects under their parent) and my Ote-only ones, filtered by
+ * what follows the "#"; a name nothing has yet offers to create it (Ote only).
  * Arrow keys / Enter are handled by the input (see `useProjectKeys`).
  */
 export function ProjectPicker({
@@ -257,7 +257,7 @@ export function ProjectPicker({
               <span className="truncate">
                 Create <span className="font-medium">#{p.name}</span>
               </span>
-              <span className="shrink-0 text-[11px] text-fg/40">Sync only</span>
+              <span className="shrink-0 text-[11px] text-fg/40">Ote only</span>
             </>
           ) : (
             <>
@@ -265,7 +265,7 @@ export function ProjectPicker({
               <span className="truncate" style={p.noBoard || p.heading ? undefined : { color: `color-mix(in srgb, ${projectColor(meta, p.id)} 70%, var(--fg))` }}>
                 {p.name}
               </span>
-              {p.local && <span className="shrink-0 text-[11px] text-fg/40">Sync only</span>}
+              {p.local && <span className="shrink-0 text-[11px] text-fg/40">Ote only</span>}
             </>
           )}
           {i === active && !p.noBoard && <span className="ml-auto text-[11px] text-fg/40">↵</span>}

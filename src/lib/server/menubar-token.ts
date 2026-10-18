@@ -5,7 +5,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-const tokenFile = () => path.join(process.env.SYNC_DATA_DIR || path.join(process.cwd(), ".data"), "menubar-token");
+const tokenFile = () => path.join(process.env.OTE_DATA_DIR || path.join(process.cwd(), ".data"), "menubar-token");
 
 let pending: Promise<string> | null = null;
 

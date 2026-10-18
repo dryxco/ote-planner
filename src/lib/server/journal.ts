@@ -8,7 +8,7 @@ import type { Applied } from "./syncdb";
 const COLS = new Set(["todos", "plans", "actuals", "tickets", "campaigns"]);
 const MAX_BYTES = 5_000_000; // then it moves to sync-journal.1.jsonl (one older file kept)
 
-const file = () => path.join(process.env.SYNC_DATA_DIR || path.join(process.cwd(), ".data"), "sync-journal.jsonl");
+const file = () => path.join(process.env.OTE_DATA_DIR || path.join(process.cwd(), ".data"), "sync-journal.jsonl");
 
 export async function journal(applied: Applied, device: { client: string | null; ua: string | null }) {
   const lines = applied

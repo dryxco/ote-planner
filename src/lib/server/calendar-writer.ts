@@ -1,8 +1,8 @@
 // Plans saved "to a calendar" become real events on this Mac's Calendar (iCloud, Google, … —
 // whatever Apple Calendar syncs), through the EventKit helper. Runs on the server after plan
 // changes arrive: creates the event, keeps title / time / place in step, deletes it with the plan
-// (or when the plan is set back to "Sync only"). Only events Sync created are ever touched.
-// The other way: an event Sync wrote that's been deleted in Calendar deletes its plan here too.
+// (or when the plan is set back to "Ote only"). Only events Ote created are ever touched.
+// The other way: an event Ote wrote that's been deleted in Calendar deletes its plan here too.
 // Repeating plans aren't written (one-off plans only).
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -27,7 +27,7 @@ interface State {
   lastError?: string | null;
 }
 
-const file = () => path.join(process.env.SYNC_DATA_DIR || path.join(process.cwd(), ".data"), "calendar-writes.json");
+const file = () => path.join(process.env.OTE_DATA_DIR || path.join(process.cwd(), ".data"), "calendar-writes.json");
 async function load(): Promise<State> {
   try {
     return JSON.parse(await fs.readFile(file(), "utf8")) as State;
@@ -42,14 +42,14 @@ async function save(s: State) {
   await fs.rename(tmp, file());
 }
 
-/** EventKit ids of the events Sync created (their ghosts are hidden). */
+/** EventKit ids of the events Ote created (their ghosts are hidden). */
 export async function writtenEventIds(): Promise<Set<string>> {
   return new Set(Object.values((await load()).links).map((l) => l.eventId));
 }
 
 /**
- * The iCalendar UIDs of the events Sync wrote. An EventKit event id is `<local part>:<UID>`, and the UID
- * is what an ICS feed / iCloud of that same calendar carries — so the same event reaching Sync that way
+ * The iCalendar UIDs of the events Ote wrote. An EventKit event id is `<local part>:<UID>`, and the UID
+ * is what an ICS feed / iCloud of that same calendar carries — so the same event reaching Ote that way
  * can be told apart from the plan that's already on the timeline.
  */
 export async function writtenEventUids(): Promise<Set<string>> {
@@ -124,7 +124,7 @@ async function run() {
   const back: SyncChange[] = [];
   let touched = false;
   try {
-    // deleted in Calendar -> delete the plan in Sync too. Only plans unchanged since their event was
+    // deleted in Calendar -> delete the plan in Ote too. Only plans unchanged since their event was
     // written count (a changed one is handled below), and only when the listing worked.
     const unchanged = Object.entries(state.links).filter(([id, l]) => {
       const p = plans.get(id);
@@ -180,7 +180,7 @@ async function run() {
       touched = true;
       await save(state);
     }
-    // events whose plan is gone, became repeating, or went back to "Sync only"
+    // events whose plan is gone, became repeating, or went back to "Ote only"
     for (const [planId, link] of Object.entries(state.links)) {
       const p = plans.get(planId);
       if (p && p.calendar && nativeCal(p.calendar.calendarId) && writable(p)) continue;

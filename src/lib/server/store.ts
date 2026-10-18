@@ -1,4 +1,4 @@
-// Encrypted credential store: .data/integrations.json, AES-256-GCM, key from SYNC_SECRET.
+// Encrypted credential store: .data/integrations.json, AES-256-GCM, key from OTE_SECRET.
 // Single-user app: one file, serialized writes within the process. Never log contents.
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { promises as fs } from "node:fs";
@@ -52,15 +52,15 @@ interface Envelope {
   data: string;
 }
 
-// SYNC_DATA_DIR (test servers) must isolate this store too — not just sessions and sync data.
-export const dataDir = () => process.env.SYNC_DATA_DIR || path.join(process.cwd(), ".data");
+// OTE_DATA_DIR (test servers) must isolate this store too — not just sessions and sync data.
+export const dataDir = () => process.env.OTE_DATA_DIR || path.join(process.cwd(), ".data");
 const storeFile = () => path.join(dataDir(), "integrations.json");
 const devSecretFile = () => path.join(dataDir(), "dev-secret");
 
 let keyPromise: Promise<Buffer> | null = null;
 
 async function loadKey(): Promise<Buffer> {
-  let secret = process.env.SYNC_SECRET?.trim();
+  let secret = process.env.OTE_SECRET?.trim();
   if (!secret) {
     // Dev fallback: a random secret persisted next to the data so restarts can still decrypt.
     // This only obscures the file; anyone with .data/ can read the tokens.
@@ -74,9 +74,9 @@ async function loadKey(): Promise<Buffer> {
     console.warn(
       "\n" +
         "==================================================================\n" +
-        " [sync] WARNING: SYNC_SECRET is not set.\n" +
+        " [sync] WARNING: OTE_SECRET is not set.\n" +
         " Calendar credentials are encrypted with a generated dev key stored\n" +
-        " in .data/dev-secret (same folder as the data). Set SYNC_SECRET\n" +
+        " in .data/dev-secret (same folder as the data). Set OTE_SECRET\n" +
         " (e.g. `openssl rand -base64 32`) before using real accounts.\n" +
         " Changing it later makes existing connections unreadable.\n" +
         "==================================================================\n",
@@ -119,8 +119,8 @@ async function readStore(): Promise<IntegrationStore> {
     return { google: parsed.google ?? [], apple: parsed.apple ?? [], ics: parsed.ics ?? [], connector: parsed.connector ?? null, mac: parsed.mac ?? false };
   } catch {
     throw new StoreError(
-      "Can't decrypt saved calendar connections (SYNC_SECRET changed or .data/integrations.json is corrupted). " +
-        "Restore the original SYNC_SECRET, or delete .data/integrations.json and reconnect.",
+      "Can't decrypt saved calendar connections (OTE_SECRET changed or .data/integrations.json is corrupted). " +
+        "Restore the original OTE_SECRET, or delete .data/integrations.json and reconnect.",
     );
   }
 }

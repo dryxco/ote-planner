@@ -1,12 +1,12 @@
-// SyncCalendar: reads this Mac's calendars (everything Apple Calendar shows — iCloud, Google,
-// Exchange, subscriptions) via EventKit and writes JSON for the Sync server. It also creates,
-// updates and deletes the events that Sync itself put on a calendar (plans saved "to a calendar").
+// OteCalendar: reads this Mac's calendars (everything Apple Calendar shows — iCloud, Google,
+// Exchange, subscriptions) via EventKit and writes JSON for the Ote server. It also creates,
+// updates and deletes the events that Ote itself put on a calendar (plans saved "to a calendar").
 //
-// usage: SyncCalendar calendars <outfile>
-//        SyncCalendar events <startMs> <endMs> <outfile>
-//        SyncCalendar create '{"calendarId","title","start","end","allDay","location"}' <outfile>
-//        SyncCalendar update '{"eventId","calendarId"?,"title","start","end","allDay","location"}' <outfile>
-//        SyncCalendar delete '{"eventId"}' <outfile>
+// usage: OteCalendar calendars <outfile>
+//        OteCalendar events <startMs> <endMs> <outfile>
+//        OteCalendar create '{"calendarId","title","start","end","allDay","location"}' <outfile>
+//        OteCalendar update '{"eventId","calendarId"?,"title","start","end","allDay","location"}' <outfile>
+//        OteCalendar delete '{"eventId"}' <outfile>
 import EventKit
 import Foundation
 
@@ -17,7 +17,7 @@ func write(_ obj: Any, to path: String) {
 
 let args = CommandLine.arguments
 guard args.count >= 3 else {
-  FileHandle.standardError.write(Data("usage: SyncCalendar calendars <out> | events <startMs> <endMs> <out>\n".utf8))
+  FileHandle.standardError.write(Data("usage: OteCalendar calendars <out> | events <startMs> <endMs> <out>\n".utf8))
   exit(2)
 }
 let out = args[args.count - 1]

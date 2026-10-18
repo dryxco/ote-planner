@@ -128,7 +128,7 @@ export interface Campaign {
   start?: number;
   due?: number;
   activityIds: string[];
-  /** "#" project ids (the connector's or Sync-only). */
+  /** "#" project ids (the connector's or Ote-only). */
   tags: string[];
   note?: string;
   done?: boolean;
@@ -188,7 +188,7 @@ export interface Settings {
   hiddenEventIds?: string[];
   /** Calendar events that didn't happen: still on the Plan side, gone from Actual. */
   skippedEventIds?: string[];
-  /** "#" projects made in Sync for my own tickets — never sent to a connector. Ids start with `local:`. */
+  /** "#" projects made in Ote for my own tickets — never sent to a connector. Ids start with `local:`. */
   localProjects?: { id: string; name: string; color?: string | null }[];
 }
 
@@ -205,7 +205,7 @@ export interface CalendarInfo {
   accountId: string;
   name: string;
   color: string;
-  /** Sync can add events to it (this Mac's calendars that allow changes). */
+  /** Ote can add events to it (this Mac's calendars that allow changes). */
   writable?: boolean;
 }
 
@@ -227,7 +227,7 @@ export interface CalendarEvent {
   location?: string;
   notes?: string;
   color: string;
-  /** The iCalendar UID (ICS / iCloud), to recognize an event Sync wrote arriving through another source. */
+  /** The iCalendar UID (ICS / iCloud), to recognize an event Ote wrote arriving through another source. */
   uid?: string;
   /** Ids of the same event in other connected calendars, shown once as this one (client-side). */
   twins?: string[];
@@ -253,12 +253,12 @@ export type TicketGroup = "to_do" | "in_progress" | "complete" | "backlog";
 
 /**
  * A ticket: in a project of your own, or one assigned to you on the connected service (mirrored both ways).
- * Fields the board owns but Sync only shows (assignees, author, dates, files) are refreshed by the
+ * Fields the board owns but Ote only shows (assignees, author, dates, files) are refreshed by the
  * server; title / status / priority / estimate / due are edited in either place.
  */
 export interface Ticket {
   id: string;
-  /** The connector's id; unset for a ticket made in Sync until the server has filed it. */
+  /** The connector's id; unset for a ticket made in Ote until the server has filed it. */
   rowId?: string;
   /** The connector's container (board / repository) id. */
   databaseId?: string;
@@ -280,13 +280,13 @@ export interface Ticket {
   /** When it got its current status (backlog / done list under the day it happened). */
   statusSince?: number | null;
   files?: { id: string; name: string; type?: string; url?: string }[];
-  /** Removed in Sync: hidden here, kept on the connected service. */
+  /** Removed in Ote: hidden here, kept on the connected service. */
   hidden?: boolean;
-  /** In a Sync-only project (`Settings.localProjects`): stays in Sync, never filed on a connector. */
+  /** In a Ote-only project (`Settings.localProjects`): stays in Ote, never filed on a connector. */
   local?: boolean;
-  /** A Sync-only ticket's description (a connector's tickets keep theirs there). */
+  /** A Ote-only ticket's description (a connector's tickets keep theirs there). */
   note?: string;
-  /** The project (campaign) it belongs to — kept in Sync only, never sent to a connector. */
+  /** The project (campaign) it belongs to — kept in Ote only, never sent to a connector. */
   campaignId?: string;
   order?: number;
   updatedAt?: number;

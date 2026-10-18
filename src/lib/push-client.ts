@@ -34,7 +34,7 @@ function deviceLabel() {
 
 export async function enablePush(): Promise<void> {
   const perm = await Notification.requestPermission();
-  if (perm !== "granted") throw new Error(perm === "denied" ? "Notifications are blocked for Sync in Settings" : "Permission wasn't granted");
+  if (perm !== "granted") throw new Error(perm === "denied" ? "Notifications are blocked for Ote in Settings" : "Permission wasn't granted");
   const reg = await registration();
   await navigator.serviceWorker.ready;
   const { publicKey } = (await (await fetch("/api/push", { cache: "no-store" })).json()) as { publicKey: string };

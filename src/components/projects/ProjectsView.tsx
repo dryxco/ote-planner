@@ -74,7 +74,7 @@ function TaskLine({ t }: { t: Todo }) {
   );
 }
 
-/** My own # projects (Sync only): rename, or delete (their tickets are hidden). */
+/** My own # projects (Ote only): rename, or delete (their tickets are hidden). */
 function MyTags() {
   const { renameLocalProject, deleteLocalProject } = useSync();
   const local = useSync((s) => s.settings.localProjects) ?? [];

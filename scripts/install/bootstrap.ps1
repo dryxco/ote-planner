@@ -1,8 +1,8 @@
-# Windows: makes sure a Node.js 20.9+ is there (downloads the official one into Sync's folder if
+# Windows: makes sure a Node.js 20.9+ is there (downloads the official one into Ote's folder if
 # not, checked against nodejs.org's published checksums), then runs scripts\install.mjs.
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..\..")
-$base = if ($env:SYNC_INSTALL_BASE) { $env:SYNC_INSTALL_BASE } else { Join-Path $env:LOCALAPPDATA "Sync" }
+$base = if ($env:OTE_INSTALL_BASE) { $env:OTE_INSTALL_BASE } else { Join-Path $env:LOCALAPPDATA "Ote" }
 $arch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "x64" }
 
 function New-Enough($exe) {
@@ -17,7 +17,7 @@ else {
   if ($sys -and (New-Enough $sys.Source)) { $node = $sys.Source }
 }
 if (-not $node) {
-  Write-Host "> Getting Node.js (the engine Sync runs on)"
+  Write-Host "> Getting Node.js (the engine Ote runs on)"
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
   $dist = "https://nodejs.org/dist/latest-v24.x"
   $tmp = Join-Path ([IO.Path]::GetTempPath()) ("sync-node-" + [guid]::NewGuid())

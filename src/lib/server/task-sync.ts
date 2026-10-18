@@ -1,12 +1,12 @@
-// Two-way sync between Sync and a connector's task board (connectors/types.ts → TaskSource).
+// Two-way sync between Ote and a connector's task board (connectors/types.ts → TaskSource).
 //
-//   - a task with a start AND end time  <->  a Sync Plan (one-off, same-day, not all-day)
-//   - any other task                    <->  a Sync To-do
+//   - a task with a start AND end time  <->  a Ote Plan (one-off, same-day, not all-day)
+//   - any other task                    <->  a Ote To-do
 // When a task gains or loses its times on one side, it moves between Plan and To-do on the other.
-// Ids are shared (a task made in Sync is created there with Sync's id). Sources needn't have change
+// Ids are shared (a task made in Ote is created there with Ote's id). Sources needn't have change
 // timestamps: each run is a 3-way merge against the snapshot taken at the last good run; when both
-// sides changed, the edit made in Sync wins. Deleting in Sync removes it there (`remove`); archived /
-// deleted there removes it here. Repeating, all-day and overnight plans stay Sync-only.
+// sides changed, the edit made in Ote wins. Deleting in Ote removes it there (`remove`); archived /
+// deleted there removes it here. Repeating, all-day and overnight plans stay Ote-only.
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Actual, Plan, Todo } from "../types";
@@ -35,7 +35,7 @@ export interface PlanNorm {
   start: string; // HH:MM
   end: string; // HH:MM
 }
-/** `done` on a plan = whether Sync had it done (a confirmed actual) when its status was last pushed. */
+/** `done` on a plan = whether Ote had it done (a confirmed actual) when its status was last pushed. */
 type Base = { kind: "todo"; n: Norm } | { kind: "plan"; n: PlanNorm; done?: boolean };
 
 interface State {
@@ -46,7 +46,7 @@ interface State {
   lastOkAt?: number;
   /** Server version of the sync data read by the last good run: newer records were saved since. */
   seenV?: number;
-  /** Versions this sync wrote itself (`col:id` -> v): not edits made in Sync. */
+  /** Versions this sync wrote itself (`col:id` -> v): not edits made in Ote. */
   ownV?: Record<string, number>;
   lastError?: string | null;
   lastResult?: Summary;
@@ -104,7 +104,7 @@ export function normRemote(d: RemoteTask): Norm {
 export const sameNorm = (a: Norm, b: Norm) =>
   a.title === b.title && a.done === b.done && a.date === b.date && a.time === b.time && a.due === b.due;
 
-/** Sync to-do updated with the source's values (Sync-only fields like activity/plan are kept). */
+/** Ote to-do updated with the source's values (Ote-only fields like activity/plan are kept). */
 export function applyNormToTodo(base: Todo | null, n: Norm, id: string, now: number, tz: string): Todo {
   const z = zoned(tz);
   const t: Todo = base ? { ...base } : { id, name: n.title, activityId: "other", color: "#5f5f64", done: false, createdAt: now };
@@ -119,7 +119,7 @@ export function applyNormToTodo(base: Todo | null, n: Norm, id: string, now: num
     t.time = h * 60 + m;
   } else {
     delete t.time;
-    delete t.duration; // Sync-only; meaningless without a time
+    delete t.duration; // Ote-only; meaningless without a time
   }
   if (n.due) t.deadline = z.midnight(n.due);
   else delete t.deadline;
@@ -145,8 +145,8 @@ export function planNormRemote(d: RemoteTask): PlanNorm {
 }
 
 /**
- * A board that rolls open past tasks over to today also catches a past plan Sync never confirmed. A
- * plan is a time that's gone, not unfinished work: that move isn't taken back into Sync.
+ * A board that rolls open past tasks over to today also catches a past plan Ote never confirmed. A
+ * plan is a time that's gone, not unfinished work: that move isn't taken back into Ote.
  */
 export const isBoardRollover = (sync: PlanNorm, remote: PlanNorm, today: string) =>
   sync.date < today && remote.date >= today && remote.date > sync.date && remote.title === sync.title && remote.start === sync.start && remote.end === sync.end;
@@ -167,14 +167,14 @@ export function applyPlanNorm(base: Plan | null, n: PlanNorm, id: string, now: n
 // ---- activity <-> source project mapping (.data/task-projects.json, optional) ----
 
 export interface ProjectMapping {
-  /** Sync activity name (matched case-insensitively). */
+  /** Ote activity name (matched case-insensitively). */
   activity: string;
   project_id: string;
   /** The source's project name, for reference. */
   project?: string;
 }
 
-const dataDir = () => process.env.SYNC_DATA_DIR || path.join(process.cwd(), ".data");
+const dataDir = () => process.env.OTE_DATA_DIR || path.join(process.cwd(), ".data");
 
 async function loadProjectMap(): Promise<ProjectMapping[]> {
   try {
@@ -237,14 +237,14 @@ async function run(owner: string, src: TaskSource): Promise<Summary> {
     const archivedIds = new Set(listed.archivedIds);
     const listsMayBeTruncated = !listed.complete;
 
-    // Sync: to-dos and the plans that can live on the board
+    // Ote: to-dos and the plans that can live on the board
     const [todoRecs, planRecs] = await Promise.all([readCollection(owner, "todos"), readCollection(owner, "plans")]);
     const ST = new Map<string, Todo>();
     const SP = new Map<string, Plan>();
     const deletedInSync = new Set<string>();
-    // saved in Sync since the last good run (by the server's version, not a device's clock): only
-    // then does Sync's value go to the board. A stale read of the sync data used to push old values
-    // as if they were Sync's edits.
+    // saved in Ote since the last good run (by the server's version, not a device's clock): only
+    // then does Ote's value go to the board. A stale read of the sync data used to push old values
+    // as if they were Ote's edits.
     const seenV = state.seenV;
     const readV = Math.max(0, ...[...todoRecs, ...planRecs].map((r) => r.v));
     const editedSince = new Set(
@@ -255,7 +255,7 @@ async function run(owner: string, src: TaskSource): Promise<Summary> {
     const syncEdited = (id: string) => seenV === undefined || editedSince.has(id);
     for (const r of todoRecs) {
       if (r.deleted) deletedInSync.add(r.id);
-      // tasks made automatically from unplanned actuals stay in Sync (they'd flood the board), and so
+      // tasks made automatically from unplanned actuals stay in Ote (they'd flood the board), and so
       // do to-dos that carry a ticket on the timeline (the ticket itself is mirrored already)
       else if (!(r.data as Todo).fromActual && !(r.data as Todo).ticketId) ST.set(r.id, r.data as Todo);
     }
@@ -271,7 +271,7 @@ async function run(owner: string, src: TaskSource): Promise<Summary> {
       }
     }
 
-    // a plan is done in Sync once an actual fulfils it fully (no tentative rest left)
+    // a plan is done in Ote once an actual fulfils it fully (no tentative rest left)
     const donePlans = new Set<string>();
     for (const r of await readCollection(owner, "actuals")) {
       const a = r.data as Actual;
@@ -298,7 +298,7 @@ async function run(owner: string, src: TaskSource): Promise<Summary> {
         const sp = SP.get(id);
         const spn = sp ? planNorm(sp, tz) : null;
         if (sp && !spn && !st) {
-          // a Sync-only plan (repeating / all-day / overnight): never on the board
+          // a Ote-only plan (repeating / all-day / overnight): never on the board
           if (state.base[id] && D.has(id) && canWrite()) {
             // it used to be on the board (e.g. became repeating): take it off there
             await src.remove(id);
@@ -315,8 +315,8 @@ async function run(owner: string, src: TaskSource): Promise<Summary> {
         if (sKind && d) {
           const dKind = isTimed(d) ? "plan" : "todo";
           if (sKind !== dKind) {
-            // Moved between To-do and Plan on one side. If Sync still matches the snapshot's kind,
-            // the source moved it; otherwise Sync did (and Sync wins).
+            // Moved between To-do and Plan on one side. If Ote still matches the snapshot's kind,
+            // the source moved it; otherwise Ote did (and Ote wins).
             const remoteMoved = !!b && b.kind === sKind;
             if (remoteMoved) {
               if (dKind === "plan") {
@@ -382,19 +382,19 @@ async function run(owner: string, src: TaskSource): Promise<Summary> {
           }
         } else if (sKind && !d) {
           if (archivedIds.has(id) && (!b || editedSince.has(id)) && canWrite()) {
-            // archived there, but Sync made or changed it since: bring it back there instead of
+            // archived there, but Ote made or changed it since: bring it back there instead of
             // deleting it here (a create with an archived id could leave it archived and loop)
             await src.update(id, { ...(sKind === "plan" ? planFields(spn!) : todoFields(normSync(st!, tz))), archived: false });
             writes++;
             state.base[id] = sKind === "plan" ? { kind: "plan", n: spn! } : { kind: "todo", n: normSync(st!, tz) };
             sum.pushedUpdates++;
-            console.info(`[sync] tasks: re-opened archived ${sKind} ${id.slice(0, 8)} (changed in Sync)`);
+            console.info(`[sync] tasks: re-opened archived ${sKind} ${id.slice(0, 8)} (changed in Ote)`);
           } else if (b) {
             if (listsMayBeTruncated) continue; // can't tell "gone" from "not listed"
             del(sKind === "plan" ? "plans" : "todos", id); // archived / deleted there
             delete state.base[id];
             sum.deletedLocal++;
-            console.info(`[sync] tasks: ${id.slice(0, 8)} is gone from the board (${archivedIds.has(id) ? "archived" : "not listed"}) — removed in Sync`);
+            console.info(`[sync] tasks: ${id.slice(0, 8)} is gone from the board (${archivedIds.has(id) ? "archived" : "not listed"}) — removed in Ote`);
           } else if (src.acceptsId && !src.acceptsId(id)) {
             sum.skipped++; // ids the source can't take
           } else if (canWrite()) {
@@ -414,7 +414,7 @@ async function run(owner: string, src: TaskSource): Promise<Summary> {
             if (!canWrite()) continue;
             await src.remove(id);
             writes++;
-            console.info(`[sync] tasks: removed ${id.slice(0, 8)} there (${deletedInSync.has(id) ? "deleted in Sync" : "no longer in Sync"})`);
+            console.info(`[sync] tasks: removed ${id.slice(0, 8)} there (${deletedInSync.has(id) ? "deleted in Ote" : "no longer in Ote"})`);
             delete state.base[id];
             sum.archived++;
           } else if (isTimed(d)) {
@@ -438,7 +438,7 @@ async function run(owner: string, src: TaskSource): Promise<Summary> {
         failures.push(`${id.slice(0, 8)}: ${(e as Error).message}`);
       }
     }
-    // Plan done-ness, Sync -> source only: a plan is "done" in Sync when an actual confirms it. Push
+    // Plan done-ness, Ote -> source only: a plan is "done" in Ote when an actual confirms it. Push
     // the status when that changes (confirmed / actual removed); a check made there is left as is.
     for (const [id, b] of Object.entries(state.base)) {
       if (b.kind !== "plan") continue;
@@ -501,7 +501,7 @@ async function run(owner: string, src: TaskSource): Promise<Summary> {
           }
           state.projBase[id] = dProj;
         } else if (sChanged && canWrite()) {
-          // activity changed in Sync: file it under the mapped project (or none)
+          // activity changed in Ote: file it under the mapped project (or none)
           if (sProj || (dProj && actOfProj.has(dProj))) {
             await src.update(id, { projectId: sProj });
             writes++;
@@ -514,8 +514,8 @@ async function run(owner: string, src: TaskSource): Promise<Summary> {
       }
     }
 
-    // what this run wrote isn't an edit made in Sync next time (a task pulled in, then archived there,
-    // was taken as "changed in Sync" and put back on the board)
+    // what this run wrote isn't an edit made in Ote next time (a task pulled in, then archived there,
+    // was taken as "changed in Ote" and put back on the board)
     state.ownV = await applyServerChanges(owner, local);
     state.lastOkAt = Date.now();
     state.seenV = readV;

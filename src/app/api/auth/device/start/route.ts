@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const guard = checkSameOrigin(request);
   if (guard) return guard;
   const login = loginProvider();
-  if (!login) return NextResponse.json({ error: "Device sign-in isn't set up (SYNC_LOGIN_URL)" }, { status: 404 });
+  if (!login) return NextResponse.json({ error: "Device sign-in isn't set up (OTE_LOGIN_URL)" }, { status: 404 });
   try {
     const d = await login.start();
     const now = Date.now();

@@ -6,7 +6,7 @@ import { getPending, removePending } from "@/lib/server/pending-logins";
 
 /**
  * POST /api/auth/device/poll -> {status: "pending" | "ok" | "expired"} or {error}
- * Once approved on the sign-in server: check who it is against SYNC_ALLOWED_USERS, start a session.
+ * Once approved on the sign-in server: check who it is against OTE_ALLOWED_USERS, start a session.
  */
 export async function POST(request: Request) {
   const guard = checkSameOrigin(request);
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     removePending(id);
     if (r.status === "expired") return NextResponse.json({ status: "expired" });
     if (!r.userId || !isAllowedUser(r.userId, r.email)) {
-      const res = NextResponse.json({ error: `This account (${r.email ?? r.userId}) isn't allowed to use Sync (SYNC_ALLOWED_USERS)` }, { status: 403 });
+      const res = NextResponse.json({ error: `This account (${r.email ?? r.userId}) isn't allowed to use Ote (OTE_ALLOWED_USERS)` }, { status: 403 });
       res.cookies.delete(LOGIN_COOKIE);
       return res;
     }

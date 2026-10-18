@@ -11,7 +11,7 @@ export async function ticketSource(): Promise<TicketSource | Response> {
   return a?.c.tickets ?? json({ error: "No connector with tickets is connected" }, 404);
 }
 
-/** A file streamed from the connector, made safe to serve from Sync's origin. */
+/** A file streamed from the connector, made safe to serve from Ote's origin. */
 export function safeFile(r: Response, cache = "private, max-age=3600"): Response {
   if (!r.ok || !r.body) return r;
   const headers = new Headers({ "cache-control": cache, "x-content-type-options": "nosniff" });

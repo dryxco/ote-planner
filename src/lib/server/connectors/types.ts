@@ -1,5 +1,5 @@
-// The contract between Sync and an outside service ("connector"): a task board, a ticket tracker,
-// a team calendar and/or a sign-in provider. Sync works fully on its own; a connector only mirrors
+// The contract between Ote and an outside service ("connector"): a task board, a ticket tracker,
+// a team calendar and/or a sign-in provider. Ote works fully on its own; a connector only mirrors
 // what it supports. Register yours in ./index.ts — see ./README.md.
 import type { CalendarEvent, CalendarInfo, TicketGroup, TicketMeta } from "../../types";
 import type { Range } from "../ics";
@@ -47,7 +47,7 @@ export interface Connector {
 
 /** Dates and times are wall-clock strings in the source's `timeZone`. */
 export interface RemoteTask {
-  /** Shared with Sync: a task made in Sync is created with Sync's id (a UUID). */
+  /** Shared with Ote: a task made in Ote is created with Ote's id (a UUID). */
   id: string;
   title: string;
   done: boolean;
@@ -55,11 +55,11 @@ export interface RemoteTask {
   date: string | null;
   /** HH:MM */
   time: string | null;
-  /** HH:MM — with `time`, the task is a Plan in Sync. */
+  /** HH:MM — with `time`, the task is a Plan in Ote. */
   endTime: string | null;
   /** YYYY-MM-DD */
   due: string | null;
-  /** The source's project, mapped to a Sync activity by .data/task-projects.json (optional). */
+  /** The source's project, mapped to a Ote activity by .data/task-projects.json (optional). */
   projectId?: string | null;
 }
 
@@ -76,12 +76,12 @@ export interface TaskSource {
   create(task: RemoteTask): Promise<void>;
   /** Only the fields given change. `archived: false` brings back an archived task. */
   update(id: string, patch: Partial<Omit<RemoteTask, "id">> & { archived?: boolean }): Promise<void>;
-  /** Deleted in Sync. Archive or delete it there. */
+  /** Deleted in Ote. Archive or delete it there. */
   remove(id: string): Promise<void>;
   /** Ids the source can't take as its own (default: any). */
   acceptsId?(id: string): boolean;
   /**
-   * Whether the source moves open past tasks to today on its own ("rollover"). Sync then ignores a
+   * Whether the source moves open past tasks to today on its own ("rollover"). Ote then ignores a
    * past plan moved to today with the same times: a plan is a time that's gone, not unfinished work.
    */
   rollsOver?: boolean;
@@ -102,7 +102,7 @@ export interface TicketNorm {
 
 export interface RemoteTicket extends TicketNorm {
   id: string;
-  /** Whatever else the source needs to address it (a board / repository id); opaque to Sync. */
+  /** Whatever else the source needs to address it (a board / repository id); opaque to Ote. */
   containerId?: string;
   projectId: string;
   statusGroup: TicketGroup;
@@ -148,9 +148,9 @@ export interface TicketSource {
   meta(): Promise<TicketMeta>;
   /** Tickets assigned to the signed-in person. `complete: false` if some couldn't be read. */
   listMine(): Promise<{ tickets: RemoteTicket[]; complete: boolean }>;
-  /** File a ticket made in Sync, assigned to the signed-in person. */
+  /** File a ticket made in Ote, assigned to the signed-in person. */
   create(projectId: string, n: TicketNorm): Promise<RemoteTicket>;
-  /** Write Sync's values. Throw StaleError if it changed there meanwhile (retried next run). */
+  /** Write Ote's values. Throw StaleError if it changed there meanwhile (retried next run). */
   update(t: RemoteTicket, n: TicketNorm): Promise<RemoteTicket>;
 
   // The ticket sheet (all optional). Descriptions are BlockNote JSON documents; `base` is the
@@ -177,6 +177,6 @@ export interface CalendarSource {
 export interface LoginProvider {
   label: string;
   start(): Promise<{ deviceCode: string; userCode: string; verificationUri: string; expiresIn: number; interval: number }>;
-  /** `ok` once approved: who signed in. Sync checks them against SYNC_ALLOWED_USERS. */
+  /** `ok` once approved: who signed in. Ote checks them against OTE_ALLOWED_USERS. */
   poll(deviceCode: string): Promise<{ status: "pending" } | { status: "expired" } | { status: "ok"; userId: string; email: string | null }>;
 }

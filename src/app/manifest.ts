@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
 
-// Lets "Add to Home Screen" open Sync full screen (no browser bars).
+// Lets "Add to Home Screen" open Ote full screen (no browser bars).
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Sync",
-    short_name: "Sync",
+    name: "Ote",
+    short_name: "Ote",
     description: "Plan your day, record what actually happened.",
     start_url: "/",
     scope: "/",

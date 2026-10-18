@@ -1,12 +1,12 @@
 // Two devices (separate browser contexts) against a server with its own data dir:
 // edits on one appear on the other; deletes propagate; first connect merges existing data.
-// usage: node scripts/e2e-sync.mjs <baseUrl of a server started with SYNC_DATA_DIR=<tmp>>
+// usage: node scripts/e2e-sync.mjs <baseUrl of a server started with OTE_DATA_DIR=<tmp>>
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { at, plan, withTestSession, openAddSheet } from "./grid-helpers.mjs";
 
 const base = process.argv[2];
-if (!base) throw new Error("baseUrl required (use a throwaway server: SYNC_DATA_DIR=<tmp> next start -p <port>)");
+if (!base) throw new Error("baseUrl required (use a throwaway server: OTE_DATA_DIR=<tmp> next start -p <port>)");
 const browser = await chromium.launch();
 const device = async (seedState) => {
   const ctx = await browser.newContext({ viewport: { width: 393, height: 852 } });

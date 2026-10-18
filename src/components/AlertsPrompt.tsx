@@ -39,7 +39,7 @@ export function AlertsPrompt() {
     <div data-alerts-prompt className="mx-4 mb-2 flex items-center gap-3 rounded-[14px] bg-surface px-3.5 py-2.5">
       <div className="min-w-0 flex-1">
         <p className="text-[13.5px] font-semibold">Plan alerts</p>
-        <p className="text-[12px] leading-snug text-fg/55">{err ?? "10 min before each plan and when it ends — even with Sync closed."}</p>
+        <p className="text-[12px] leading-snug text-fg/55">{err ?? "10 min before each plan and when it ends — even with Ote closed."}</p>
       </div>
       <button onClick={dismiss} className="shrink-0 px-1 text-[12.5px] text-fg/45">
         Later

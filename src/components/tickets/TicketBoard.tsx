@@ -133,7 +133,7 @@ function Card({ t, meta, onOpen }: { t: Ticket; meta: ReturnType<typeof useTicke
         {t.due && <span className="shrink-0">due {Number(t.due.slice(5, 7))}/{Number(t.due.slice(8, 10))}</span>}
         {!t.rowId && !t.local && <span className="shrink-0">uploading…</span>}
       </div>
-      {/* copy title / delete (hide in Sync), on hover */}
+      {/* copy title / delete (hide in Ote), on hover */}
       <div className="absolute right-1.5 top-1.5 hidden items-center gap-0.5 has-[[data-ticket-copy-menu]]:flex rounded-[10px] border border-fg/10 bg-surface p-0.5 shadow-sm group-hover:flex">
         <TicketCopyMenu t={t} place="below">
         <button
@@ -153,7 +153,7 @@ function Card({ t, meta, onOpen }: { t: Ticket; meta: ReturnType<typeof useTicke
         </TicketCopyMenu>
         <button
           aria-label={confirm ? "Tap again to delete" : "Delete ticket"}
-          title="Removes it in Sync only (it stays on the connected service)"
+          title="Removes it in Ote only (it stays on the connected service)"
           onClick={(e) => {
             e.stopPropagation();
             if (!confirm) return setConfirm(true);

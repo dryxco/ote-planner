@@ -9,11 +9,11 @@ const KEEP_FILES = 600;
 
 // Media names are expected to be unguessable and never reused, so a copy on this server stays valid:
 // fetching through the connector can take a second an image, the copy is instant (on every device).
-const cacheDir = () => path.join(process.env.SYNC_DATA_DIR || path.join(process.cwd(), ".data"), "media-cache");
+const cacheDir = () => path.join(process.env.OTE_DATA_DIR || path.join(process.cwd(), ".data"), "media-cache");
 
 function headersFor(type: string) {
   const headers = new Headers({ "cache-control": "private, max-age=31536000, immutable", "x-content-type-options": "nosniff" });
-  // served from Sync's origin: only media renders inline; anything else downloads
+  // served from Ote's origin: only media renders inline; anything else downloads
   if (INLINE.test(type)) headers.set("content-type", type);
   else {
     headers.set("content-type", "application/octet-stream");

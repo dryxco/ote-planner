@@ -1,6 +1,6 @@
 // Auth gate e2e against a throwaway server started with:
-//   SYNC_DATA_DIR=<tmp> SYNC_PASSWORD=test-pass SYNC_LOGIN_URL=http://127.0.0.1:3399 \
-//   SYNC_ALLOWED_USERS=good-user SYNC_ALLOWED_TAILSCALE_USERS=phone@example.com next start -p 3302
+//   OTE_DATA_DIR=<tmp> OTE_PASSWORD=test-pass OTE_LOGIN_URL=http://127.0.0.1:3399 \
+//   OTE_ALLOWED_USERS=good-user OTE_ALLOWED_TAILSCALE_USERS=phone@example.com next start -p 3302
 // and scripts/mock-connector.mjs 3399.
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
@@ -42,7 +42,7 @@ async function deviceLogin(userId, email) {
   return { ctx, page };
 }
 
-// wrong password: refused; a device sign-in by someone not on SYNC_ALLOWED_USERS: refused
+// wrong password: refused; a device sign-in by someone not on OTE_ALLOWED_USERS: refused
 {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
@@ -52,8 +52,8 @@ async function deviceLogin(userId, email) {
   await page.getByText("Wrong password").waitFor();
   await ctx.close();
   const d = await deviceLogin("intruder", "someone@example.org");
-  await d.page.getByText("isn't allowed to use Sync").waitFor();
-  assert.equal((await d.ctx.cookies()).filter((c) => c.name === "sync_session").length, 0);
+  await d.page.getByText("isn't allowed to use Ote").waitFor();
+  assert.equal((await d.ctx.cookies()).filter((c) => c.name === "ote_session").length, 0);
   await d.ctx.close();
   console.log("ok - wrong password and a not-allowed account are refused");
 }
@@ -75,7 +75,7 @@ async function deviceLogin(userId, email) {
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await page.waitForURL(base + "/calendar");
   await page.getByText("Calendar").first().waitFor();
-  const cookie = (await ctx.cookies()).find((c) => c.name === "sync_session");
+  const cookie = (await ctx.cookies()).find((c) => c.name === "ote_session");
   assert.ok(cookie?.httpOnly, "session cookie is httpOnly");
   const sync = await page.evaluate(() => fetch("/api/sync", { method: "POST", headers: { "content-type": "application/json" }, body: '{"since":0,"changes":[]}' }).then((x) => x.status));
   assert.equal(sync, 200);

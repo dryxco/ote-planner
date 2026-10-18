@@ -41,7 +41,7 @@ END:VEVENT`);
   assert.equal(e.notes, "notes here");
   assert.equal(e.color, "#ff2968");
   assert.equal(e.id, `apple:acc:home:a1:${e.start}`);
-  assert.equal(e.uid, "a1", "the UID tells an event Sync wrote apart when it comes back through a feed");
+  assert.equal(e.uid, "a1", "the UID tells an event Ote wrote apart when it comes back through a feed");
 });
 
 test("UTC and floating times", () => {

@@ -152,7 +152,7 @@ export async function getEvents(range: Range, tz?: string): Promise<EventsRespon
     }),
   ]);
 
-  // events Sync put on a calendar are already on the timeline as their plans (the Mac source drops its
+  // events Ote put on a calendar are already on the timeline as their plans (the Mac source drops its
   // copy; this drops the one an ICS feed / iCloud of the same calendar brings back)
   const mine = await writtenEventUids();
   const shown = events.filter((e) => !e.uid || !mine.has(e.uid));

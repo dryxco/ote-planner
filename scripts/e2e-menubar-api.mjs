@@ -1,6 +1,6 @@
 // Menu bar API e2e against a throwaway server started with:
-//   SYNC_DATA_DIR=<tmp> SYNC_DISABLE_JOBS=1 SYNC_ALLOWED_USERS=good-user next start -p 3302
-// usage: node scripts/e2e-menubar-api.mjs <baseUrl> <that server's SYNC_DATA_DIR>
+//   OTE_DATA_DIR=<tmp> OTE_DISABLE_JOBS=1 OTE_ALLOWED_USERS=good-user next start -p 3302
+// usage: node scripts/e2e-menubar-api.mjs <baseUrl> <that server's OTE_DATA_DIR>
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
@@ -9,7 +9,7 @@ import path from "node:path";
 const [base, dataDir] = process.argv.slice(2);
 if (!base || !dataDir) throw new Error("usage: e2e-menubar-api.mjs <baseUrl> <dataDir of the throwaway server>");
 const session = execFileSync("node", [path.join(import.meta.dirname, "make-test-session.mjs"), dataDir, "good-user"], { encoding: "utf8" });
-const cookie = { cookie: `sync_session=${session}` };
+const cookie = { cookie: `ote_session=${session}` };
 const bearer = (t) => ({ authorization: `Bearer ${t}` });
 
 // no credentials / wrong token: 401; the token alone doesn't open any other route

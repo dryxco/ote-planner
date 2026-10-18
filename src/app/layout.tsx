@@ -14,11 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sync",
+  title: "Ote",
   description: "Plan your day, record what actually happened, and see how well they sync.",
   // "black" (opaque), not "black-translucent": with a translucent status bar iOS home-screen apps get a
   // web view that ends ~one status-bar height above the screen bottom, leaving a dead strip there.
-  appleWebApp: { capable: true, title: "Sync", statusBarStyle: "black" },
+  appleWebApp: { capable: true, title: "Ote", statusBarStyle: "black" },
   // the tab icon is set by THEME_SCRIPT (it follows the theme); without script, /favicon.ico
   icons: { apple: "/icons/apple-touch-icon.png" },
 };

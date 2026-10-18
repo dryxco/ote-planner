@@ -220,7 +220,7 @@ export function Timeline({ date, now, events }: { date: number; now: number; eve
     ...timedOcc.map((occ): Item => ({ kind: "plan", occ, kept: isOccurrenceKept(occ, actuals) })),
   ];
 
-  // Sync's core loop: everything planned on the left shows up on the right as a dashed, faint
+  // Ote's core loop: everything planned on the left shows up on the right as a dashed, faint
   // tentative actual. It only becomes ground truth (full color) once confirmed — as planned, or with
   // adjusted times — from the popup it opens.
   const actualItems: Item[] = timedEvents
@@ -1316,7 +1316,7 @@ function ActualBlocks({ actual: a, part, grid }: { actual: Actual; part?: [numbe
 }
 
 /**
- * Below the grid (scroll down): the day's Sync / Attainment and actual vs. planned per activity.
+ * Below the grid (scroll down): the day's Ote / Attainment and actual vs. planned per activity.
  * Rates show "—" until the day is over — a day's score is final once it closes.
  */
 function DaySummary({ dayStart, dayEnd, now }: { dayStart: number; dayEnd: number; now: number }) {

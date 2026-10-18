@@ -1,7 +1,7 @@
-// Fills a THROWAWAY Sync server with a made-up example day: today's plans and actuals, a few to-dos,
-// a project with tickets, a goal and a diary note — for trying Sync out.
+// Fills a THROWAWAY Ote server with a made-up example day: today's plans and actuals, a few to-dos,
+// a project with tickets, a goal and a diary note — for trying Ote out.
 //   --weeks=3  also the weeks before and after (for the Review / Goals screenshots in the README)
-// usage: SYNC_TEST_SESSION=<cookie> node scripts/demo-data.mjs <base url> [--weeks=3]
+// usage: OTE_TEST_SESSION=<cookie> node scripts/demo-data.mjs <base url> [--weeks=3]
 // Never point it at your real server: it adds records next to yours.
 import { createHash } from "node:crypto";
 
@@ -15,7 +15,7 @@ const randomUUID = () => {
 
 const base = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? "http://127.0.0.1:3302";
 const weeks = Number(process.argv.find((a) => a.startsWith("--weeks="))?.split("=")[1] ?? 0);
-const cookie = process.env.SYNC_TEST_SESSION ? `sync_session=${process.env.SYNC_TEST_SESSION}` : "";
+const cookie = process.env.OTE_TEST_SESSION ? `ote_session=${process.env.OTE_TEST_SESSION}` : "";
 const DAY = 86_400_000;
 const today = new Date();
 today.setHours(0, 0, 0, 0);

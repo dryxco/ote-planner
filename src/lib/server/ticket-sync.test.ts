@@ -7,27 +7,27 @@ import { StaleError, type RemoteTicket, type TicketSource } from "./connectors/t
 import { goesToSource, mergeTicket, type TicketNorm } from "./ticket-sync";
 
 before(() => {
-  process.env.SYNC_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "ticket-sync-"));
+  process.env.OTE_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "ticket-sync-"));
 });
 
 const base: TicketNorm = { title: "Resize images", status: "Not started", priority: null, estimate: null, due: null };
 
-test("a status move made there survives a title edit made in Sync", () => {
+test("a status move made there survives a title edit made in Ote", () => {
   const sync = { ...base, title: "Resize images (2x)" };
   const remote = { ...base, status: "In progress" };
   assert.deepEqual(mergeTicket(sync, remote, base), { ...base, title: "Resize images (2x)", status: "In progress" });
 });
 
-test("a field changed on both sides: Sync's value", () => {
+test("a field changed on both sides: Ote's value", () => {
   assert.equal(mergeTicket({ ...base, status: "Done" }, { ...base, status: "In progress" }, base).status, "Done");
 });
 
-test("nothing changed in Sync: the source's values", () => {
+test("nothing changed in Ote: the source's values", () => {
   const remote = { ...base, status: "In review", due: "2026-10-12" };
   assert.deepEqual(mergeTicket(base, remote, base), remote);
 });
 
-test("tickets in my own (Sync-only) projects are never filed on a connector", () => {
+test("tickets in my own (Ote-only) projects are never filed on a connector", () => {
   const t = { id: "t", projectId: "p-remote", title: "x", status: "Not started", createdAt: 0 };
   assert.equal(goesToSource(t), true);
   assert.equal(goesToSource({ ...t, hidden: true }), false);
@@ -80,7 +80,7 @@ test("end to end: filed once, pulled, merged, and a stale write waits for the ne
   const s1 = (await readCollection(owner, "tickets")).find((r) => r.id === "s1")!.data as { status: string };
   assert.equal(s1.status, "Doing");
 
-  // renamed in Sync while it changed there: kept for the next run, not lost
+  // renamed in Ote while it changed there: kept for the next run, not lost
   await applyServerChanges(owner, [{ col: "tickets", id: "s1", updatedAt: Date.now(), data: { ...s1, title: "Fix the header" } }]);
   stale = true;
   sum = await syncTickets(owner, src);
@@ -91,7 +91,7 @@ test("end to end: filed once, pulled, merged, and a stale write waits for the ne
   assert.equal(rows.get("r1")?.title, "Fix the header");
   assert.equal(rows.get("r1")?.status, "Doing");
 
-  // unassigned there: leaves Sync
+  // unassigned there: leaves Ote
   rows.delete("r9");
   sum = await syncTickets(owner, src);
   assert.equal(sum.removed, 1);

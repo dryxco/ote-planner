@@ -1,5 +1,5 @@
-// Installs (or updates) Sync on this computer as a background app that starts with the computer.
-// Run through "Install Sync" (macOS / Linux: Install Sync.command, Windows: Install Sync.cmd), which
+// Installs (or updates) Ote on this computer as a background app that starts with the computer.
+// Run through "Install Ote" (macOS / Linux: Install Ote.command, Windows: Install Ote.cmd), which
 // first gets Node.js if needed — or directly: node scripts/install.mjs
 //
 //   --phone=none|tailscale|wifi   how your phone reaches it (asked when not given)
@@ -8,8 +8,8 @@
 //   --no-open                     don't open the browser at the end
 //   --uninstall [--purge]         remove it (--purge also deletes your data)
 //
-// Where things go (SYNC_INSTALL_BASE overrides):
-//   macOS ~/Library/Application Support/Sync · Windows %LOCALAPPDATA%\Sync · Linux ~/.local/share/sync
+// Where things go (OTE_INSTALL_BASE overrides):
+//   macOS ~/Library/Application Support/Ote · Windows %LOCALAPPDATA%\Ote · Linux ~/.local/share/ote
 //   app/ (the program, replaced on update) · data/ (your data) · config.env (settings) · logs/
 import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -29,13 +29,13 @@ const plat = process.platform; // darwin | win32 | linux
 const src = path.join(import.meta.dirname, "..");
 const home = os.homedir();
 const base =
-  process.env.SYNC_INSTALL_BASE ||
-  (plat === "darwin" ? path.join(home, "Library", "Application Support", "Sync") : plat === "win32" ? path.join(process.env.LOCALAPPDATA || path.join(home, "AppData", "Local"), "Sync") : path.join(process.env.XDG_DATA_HOME || path.join(home, ".local", "share"), "sync"));
+  process.env.OTE_INSTALL_BASE ||
+  (plat === "darwin" ? path.join(home, "Library", "Application Support", "Ote") : plat === "win32" ? path.join(process.env.LOCALAPPDATA || path.join(home, "AppData", "Local"), "Ote") : path.join(process.env.XDG_DATA_HOME || path.join(home, ".local", "share"), "ote"));
 const appDir = path.join(base, "app");
 const dataDir = path.join(base, "data");
 const logDir = path.join(base, "logs");
 const configFile = path.join(base, "config.env");
-const LABEL = process.env.SYNC_INSTALL_LABEL || "io.github.sync-planner";
+const LABEL = process.env.OTE_INSTALL_LABEL || "io.github.ote";
 const tty = process.stdin.isTTY && !args.yes;
 
 const say = (s = "") => console.log(s);
@@ -58,7 +58,7 @@ function readConfig() {
 }
 function writeConfig(c) {
   const lines = [
-    "# Sync settings. Run the installer again to change how your phone connects.",
+    "# Ote settings. Run the installer again to change how your phone connects.",
     "# Everything you can set: .env.example in the app folder.",
     ...Object.entries(c).map(([k, v]) => `${k}=${v}`),
   ];
@@ -102,7 +102,7 @@ function startService() {
   <key>Label</key><string>${xml(LABEL)}</string>
   <key>ProgramArguments</key><array><string>${xml(nodeBin)}</string><string>${xml(serveJs)}</string></array>
   <key>WorkingDirectory</key><string>${xml(appDir)}</string>
-  <key>EnvironmentVariables</key><dict><key>SYNC_HOME</key><string>${xml(base)}</string></dict>
+  <key>EnvironmentVariables</key><dict><key>OTE_HOME</key><string>${xml(base)}</string></dict>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
   <key>StandardOutPath</key><string>${xml(log)}</string>
@@ -117,11 +117,11 @@ function startService() {
     writeFileSync(
       unit,
       `[Unit]
-Description=Sync day planner
+Description=Ote day planner
 After=network-online.target
 
 [Service]
-Environment=SYNC_HOME=${base}
+Environment=OTE_HOME=${base}
 WorkingDirectory=${appDir}
 ExecStart="${nodeBin}" "${serveJs}"
 Restart=always
@@ -145,7 +145,7 @@ WantedBy=default.target
     startupVbs,
     [
       'Set sh = CreateObject("WScript.Shell")',
-      `sh.Environment("Process")("SYNC_HOME") = ${vbs(base)}`,
+      `sh.Environment("Process")("OTE_HOME") = ${vbs(base)}`,
       `sh.CurrentDirectory = ${vbs(appDir)}`,
       `sh.Run ${vbs(cmdLine)}, 0, False`,
     ].join("\r\n") + "\r\n",
@@ -156,7 +156,7 @@ WantedBy=default.target
 
 function spawnDetached(log) {
   const fd = openSync(log, "a");
-  spawn(nodeBin, [serveJs], { cwd: appDir, env: { ...process.env, SYNC_HOME: base }, detached: true, stdio: ["ignore", fd, fd] }).unref();
+  spawn(nodeBin, [serveJs], { cwd: appDir, env: { ...process.env, OTE_HOME: base }, detached: true, stdio: ["ignore", fd, fd] }).unref();
 }
 
 // ---- helpers ----
@@ -242,24 +242,24 @@ async function ask(q, def) {
 // ---- uninstall ----
 
 if (args.uninstall) {
-  step("Stopping Sync");
+  step("Stopping Ote");
   stopService();
   rmSync(plist, { force: true });
   rmSync(unit, { force: true });
   if (plat === "linux") run("systemctl", ["--user", "daemon-reload"]);
   if (plat === "win32") rmSync(startupVbs, { force: true });
   const c = readConfig();
-  if (c.SYNC_TAILSCALE_HTTPS) {
+  if (c.OTE_TAILSCALE_HTTPS) {
     const cli = tailscaleCli();
-    if (cli) run(cli, ["serve", `--https=${c.SYNC_TAILSCALE_HTTPS}`, "off"]);
+    if (cli) run(cli, ["serve", `--https=${c.OTE_TAILSCALE_HTTPS}`, "off"]);
   }
   rmSync(appDir, { recursive: true, force: true });
   rmSync(path.join(base, "runtime"), { recursive: true, force: true });
   if (args.purge) {
     rmSync(base, { recursive: true, force: true });
-    say("\n✓ Sync and all its data are removed.");
+    say("\n✓ Ote and all its data are removed.");
   } else {
-    say(`\n✓ Sync is removed. Your data is still in ${dataDir}`);
+    say(`\n✓ Ote is removed. Your data is still in ${dataDir}`);
     say("  (install again to get it back, or delete that folder to remove it for good)");
   }
   process.exit(0);
@@ -268,20 +268,20 @@ if (args.uninstall) {
 // ---- install / update ----
 
 const [maj, min] = process.versions.node.split(".").map(Number);
-if (maj < 20 || (maj === 20 && min < 9)) fail(`Sync needs Node.js 20.9 or newer (this is ${process.versions.node}).`);
+if (maj < 20 || (maj === 20 && min < 9)) fail(`Ote needs Node.js 20.9 or newer (this is ${process.versions.node}).`);
 
 const config = readConfig();
 const updating = existsSync(path.join(appDir, ".next", "BUILD_ID"));
-say(updating ? "Updating Sync…" : "Installing Sync…");
+say(updating ? "Updating Ote…" : "Installing Ote…");
 say(`  into ${base}`);
 
 // how the phone connects
 const modes = { 1: "none", 2: "tailscale", 3: "wifi" };
-let phone = typeof args.phone === "string" ? args.phone : config.SYNC_PHONE;
+let phone = typeof args.phone === "string" ? args.phone : config.OTE_PHONE;
 if (!phone || (tty && typeof args.phone !== "string")) {
   const cur = Object.entries(modes).find(([, v]) => v === (phone ?? "none"))?.[0] ?? "1";
   say(`
-Do you want to use Sync on your phone or another computer too?
+Do you want to use Ote on your phone or another computer too?
   1) Not now — only on this computer (no password needed)
   2) Yes, with Tailscale — private, works anywhere (free app on both devices)
   3) Yes, on the same Wi-Fi — simplest, needs a password, only at home`);
@@ -298,13 +298,13 @@ if (phone === "tailscale" && !ts) {
 
 // a password for other devices
 let shownPassword = null;
-if (phone !== "none" && !config.SYNC_PASSWORD) {
+if (phone !== "none" && !config.OTE_PASSWORD) {
   let pw = typeof args.password === "string" ? args.password : await ask("\nChoose a password for your other devices (Enter = make one up for me): ", "");
   if (!pw) pw = shownPassword = randomBytes(9).toString("base64url");
-  config.SYNC_PASSWORD = pw;
-} else if (typeof args.password === "string") config.SYNC_PASSWORD = args.password;
+  config.OTE_PASSWORD = pw;
+} else if (typeof args.password === "string") config.OTE_PASSWORD = args.password;
 
-step("Stopping the running Sync (if any)");
+step("Stopping the running Ote (if any)");
 stopService();
 
 step("Copying the app");
@@ -320,44 +320,44 @@ if (!npm(["ci", "--no-audit", "--no-fund", "--loglevel=error"], appDir)) fail("I
 step("Building");
 if (!npm(["run", "build"], appDir)) fail(`The build failed (see above, and ${path.join(logDir, "install.log")}).`);
 
-config.SYNC_SECRET ||= randomBytes(32).toString("base64");
-config.SYNC_PHONE = phone;
-config.SYNC_HOST = phone === "wifi" ? "0.0.0.0" : "127.0.0.1";
-config.SYNC_PORT ||= String(await freePort(3000, config.SYNC_HOST));
-config.APP_URL ||= `http://localhost:${config.SYNC_PORT}`;
+config.OTE_SECRET ||= randomBytes(32).toString("base64");
+config.OTE_PHONE = phone;
+config.OTE_HOST = phone === "wifi" ? "0.0.0.0" : "127.0.0.1";
+config.OTE_PORT ||= String(await freePort(3000, config.OTE_HOST));
+config.APP_URL ||= `http://localhost:${config.OTE_PORT}`;
 writeConfig(config);
 
-step("Starting Sync in the background");
+step("Starting Ote in the background");
 const persistent = startService();
-if (!(await waitUp(config.SYNC_PORT))) fail(`Sync didn't come up. See ${path.join(logDir, "server.log")}`);
+if (!(await waitUp(config.OTE_PORT))) fail(`Ote didn't come up. See ${path.join(logDir, "server.log")}`);
 
 let phoneUrl = null;
 let phoneNote = null;
 if (phone === "tailscale") {
-  const r = tailscaleServe(ts, config.SYNC_PORT, config.SYNC_TAILSCALE_HTTPS);
+  const r = tailscaleServe(ts, config.OTE_PORT, config.OTE_TAILSCALE_HTTPS);
   if (r.error) phoneNote = r.error;
   else {
     phoneUrl = r.url;
-    config.SYNC_TAILSCALE_HTTPS = String(r.https);
+    config.OTE_TAILSCALE_HTTPS = String(r.https);
     writeConfig(config);
   }
 } else if (phone === "wifi") {
   const ip = lanAddress();
-  phoneUrl = ip ? `http://${ip}:${config.SYNC_PORT}` : null;
+  phoneUrl = ip ? `http://${ip}:${config.OTE_PORT}` : null;
   phoneNote = ip ? null : "Couldn't find this computer's Wi-Fi address.";
 }
 
-const local = `http://localhost:${config.SYNC_PORT}`;
+const local = `http://localhost:${config.OTE_PORT}`;
 say(`
-✓ Sync is ${updating ? "updated" : "installed"} and running.
+✓ Ote is ${updating ? "updated" : "installed"} and running.
 
   On this computer:  ${local}${phone === "wifi" ? "  (sign in with the password)" : ""}`);
 if (phoneUrl) say(`  On your phone:     ${phoneUrl}\n                     then Share → Add to Home Screen to use it like an app`);
 if (phone === "tailscale" && phoneUrl) say("                     (the phone needs the Tailscale app, signed in to the same account)");
 if (phone === "wifi") say("                     (only while the phone is on the same Wi-Fi; if your computer asks to allow\n                      incoming connections for \"node\", choose Allow)");
 if (phoneNote) say(`\n  ! ${phoneNote}`);
-if (shownPassword) say(`\n  Password for other devices: ${shownPassword}\n  (saved in ${configFile} as SYNC_PASSWORD)`);
-else if (phone !== "none") say(`\n  Other devices sign in with your password (SYNC_PASSWORD in ${configFile}).`);
+if (shownPassword) say(`\n  Password for other devices: ${shownPassword}\n  (saved in ${configFile} as OTE_PASSWORD)`);
+else if (phone !== "none") say(`\n  Other devices sign in with your password (OTE_PASSWORD in ${configFile}).`);
 say(persistent ? "\n  It starts by itself when you turn on the computer." : "\n  ! It runs until the computer restarts (no service manager here): run the installer again after a restart.");
-say(`  Your data: ${dataDir}\n  To update: download the new version and run the installer again. To remove: run "Uninstall Sync".`);
+say(`  Your data: ${dataDir}\n  To update: download the new version and run the installer again. To remove: run "Uninstall Ote".`);
 openBrowser(local);

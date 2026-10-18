@@ -82,7 +82,7 @@ interface Form {
   endConfirmation: EndConfirmOption;
   planKey?: string;
   sourceEventId?: string;
-  /** plan saved to a real calendar ("" = Sync only) */
+  /** plan saved to a real calendar ("" = Ote only) */
   calendarId: string;
   // todo
   hasDate: boolean;
@@ -589,7 +589,7 @@ export function EntrySheet({ target }: { target: EntryTarget }) {
           >
             Hide this event
           </BigButton>
-          <Footnote>Hides this calendar event from Sync&apos;s timeline. The event in your calendar is not changed.</Footnote>
+          <Footnote>Hides this calendar event from Ote&apos;s timeline. The event in your calendar is not changed.</Footnote>
         </>
       )}
       {!isNew && kind === "plan" && editingPlan && target.mode === "edit" && target.kind === "plan" && (
@@ -807,7 +807,7 @@ function PauseActual({ id, now }: { id: string; now: number }) {
   );
 }
 
-/** "Add to calendar": Sync only, or one of this Mac's calendars (iCloud, Google, …). */
+/** "Add to calendar": Ote only, or one of this Mac's calendars (iCloud, Google, …). */
 function CalendarRow({ value, onChange, repeating }: { value: string; onChange: (id: string) => void; repeating: boolean }) {
   const [all, setCals] = useState<CalendarInfo[] | null>(null);
   // only calendars ticked in Settings → Calendars shown (plus the one already chosen)
@@ -821,7 +821,7 @@ function CalendarRow({ value, onChange, repeating }: { value: string; onChange: 
     };
   }, []);
   const options = [
-    { value: "", label: "Sync only" },
+    { value: "", label: "Ote only" },
     ...(cals ?? []).map((c) => ({ value: c.id, label: `${c.name} · ${c.accountId}` })),
     ...(value && cals && !cals.some((c) => c.id === value) ? [{ value, label: "(calendar unavailable)" }] : []),
   ];
@@ -833,7 +833,7 @@ function CalendarRow({ value, onChange, repeating }: { value: string; onChange: 
         Calendar
       </span>
       <span className="flex min-w-0 items-center gap-2">
-        {repeating && value && <span className="text-[11px] text-fg/45">repeating plans stay in Sync</span>}
+        {repeating && value && <span className="text-[11px] text-fg/45">repeating plans stay in Ote</span>}
         <PopupSelect tone="plain" value={value} options={options} onChange={onChange} />
       </span>
     </div>

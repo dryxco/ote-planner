@@ -1,30 +1,30 @@
-// Sign-in for Sync.
+// Sign-in for Ote.
 //
-// - Every page and API needs a Sync session (cookie). Two ways to get one:
-//   * the password in SYNC_PASSWORD (single user), or
-//   * a device-code sign-in with a server of your own (SYNC_LOGIN_URL, connectors/index.ts) whose
-//     user id / email is on SYNC_ALLOWED_USERS. Sync keeps no access to that server afterwards.
+// - Every page and API needs a Ote session (cookie). Two ways to get one:
+//   * the password in OTE_PASSWORD (single user), or
+//   * a device-code sign-in with a server of your own (OTE_LOGIN_URL, connectors/index.ts) whose
+//     user id / email is on OTE_ALLOWED_USERS. Ote keeps no access to that server afterwards.
 //   Neither configured = nobody can sign in from another device (fails closed).
-// - This computer needs no sign-in when the server listens on it alone (SYNC_BIND=127.0.0.1, which
+// - This computer needs no sign-in when the server listens on it alone (OTE_BIND=127.0.0.1, which
 //   scripts/serve.mjs sets with -H): then only this computer and `tailscale serve` can connect, and
 //   what `tailscale serve` relays carries Tailscale-User-Login / a non-loopback X-Forwarded-For. On any
 //   other bind address a request from the network could forge those headers (Next only fills in
 //   X-Forwarded-For when it's missing), so every request needs a session there.
-//   SYNC_AUTH=off turns the gate off altogether — only for a server nobody else can reach.
-// - Optional extra gate: if SYNC_ALLOWED_TAILSCALE_USERS is set, requests through `tailscale serve`
+//   OTE_AUTH=off turns the gate off altogether — only for a server nobody else can reach.
+// - Optional extra gate: if OTE_ALLOWED_TAILSCALE_USERS is set, requests through `tailscale serve`
 //   must come from one of those Tailscale logins.
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { promises as fs, statSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { shared } from "./shared";
 
-export const SESSION_COOKIE = "sync_session";
+export const SESSION_COOKIE = "ote_session";
 const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
-export const LOGIN_COOKIE = "sync_login";
+export const LOGIN_COOKIE = "ote_login";
 export const SESSION_TTL_MS = 180 * 24 * 3600_000; // ~6 months
 
 export interface Session {
-  /** "password" for the SYNC_PASSWORD login, else the id the sign-in server gave. */
+  /** "password" for the OTE_PASSWORD login, else the id the sign-in server gave. */
   userId: string;
   method: "password" | "device";
   email: string | null;
@@ -35,7 +35,7 @@ export interface Session {
 }
 
 function dataDir() {
-  return process.env.SYNC_DATA_DIR || path.join(process.cwd(), ".data");
+  return process.env.OTE_DATA_DIR || path.join(process.cwd(), ".data");
 }
 const sessionsFile = () => path.join(dataDir(), "sessions.json");
 const hashId = (id: string) => createHash("sha256").update(`sync-session:v1:${id}`).digest("hex");
@@ -47,13 +47,13 @@ function list(env: string | undefined): string[] {
     .filter(Boolean);
 }
 
-export const allowedUsers = () => list(process.env.SYNC_ALLOWED_USERS);
-export const allowedTailscale = () => list(process.env.SYNC_ALLOWED_TAILSCALE_USERS);
+export const allowedUsers = () => list(process.env.OTE_ALLOWED_USERS);
+export const allowedTailscale = () => list(process.env.OTE_ALLOWED_TAILSCALE_USERS);
 
-export const authOff = () => process.env.SYNC_AUTH === "off";
+export const authOff = () => process.env.OTE_AUTH === "off";
 
 /** The server accepts connections from this computer only (see the top of this file). */
-export const boundToLoopback = () => ["127.0.0.1", "localhost", "::1"].includes((process.env.SYNC_BIND ?? "").trim());
+export const boundToLoopback = () => ["127.0.0.1", "localhost", "::1"].includes((process.env.OTE_BIND ?? "").trim());
 
 /** A request made on this computer, when that can be told for sure: no sign-in needed. */
 export function isLocalRequest(headers: Headers): boolean {
@@ -63,11 +63,11 @@ export function isLocalRequest(headers: Headers): boolean {
     .map((s) => s.trim())
     .every((ip) => !ip || LOOPBACK.has(ip));
 }
-export const passwordLogin = () => !!process.env.SYNC_PASSWORD;
+export const passwordLogin = () => !!process.env.OTE_PASSWORD;
 
-/** Constant-time check of the SYNC_PASSWORD login. */
+/** Constant-time check of the OTE_PASSWORD login. */
 export function checkPassword(given: string): boolean {
-  const want = process.env.SYNC_PASSWORD;
+  const want = process.env.OTE_PASSWORD;
   if (!want) return false;
   const h = (x: string) => createHash("sha256").update(x).digest();
   return timingSafeEqual(h(given), h(want));

@@ -1,12 +1,12 @@
 // Two-way sync of a connector's tickets assigned to the signed-in person (connectors/types.ts →
 // TicketSource).
 //
-// Pull: tickets the source lists as mine become Sync tickets (record id = the source's id).
-// Push: tickets made in Sync on a source project are filed there. Title / status / priority /
+// Pull: tickets the source lists as mine become Ote tickets (record id = the source's id).
+// Push: tickets made in Ote on a source project are filed there. Title / status / priority /
 // estimate / due are a 3-way merge per field against the snapshot of the last good run; when both
-// sides changed a field, Sync wins (like the task sync).
-// Delete: removing a ticket in Sync only hides it here. A ticket no longer assigned to me leaves Sync.
-// Tickets in a project of your own (`local:` ids, Settings.localProjects) never leave Sync.
+// sides changed a field, Ote wins (like the task sync).
+// Delete: removing a ticket in Ote only hides it here. A ticket no longer assigned to me leaves Ote.
+// Tickets in a project of your own (`local:` ids, Settings.localProjects) never leave Ote.
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Ticket } from "../types";
@@ -17,7 +17,7 @@ import { StaleError, type RemoteTicket, type TicketNorm, type TicketSource } fro
 
 export type { TicketNorm };
 const DEFAULT_MAX_WRITES = 20;
-/** Finished tickets stay in Sync this long after completion (a project holds hundreds of old ones). */
+/** Finished tickets stay in Ote this long after completion (a project holds hundreds of old ones). */
 const KEEP_DONE_MS = 14 * 86_400_000;
 /** On the timer only every other minute (edits run at once). */
 const IDLE_EVERY_MS = 110_000;
@@ -26,8 +26,8 @@ export const sameTicket = (a: TicketNorm, b: TicketNorm) =>
   a.title === b.title && a.status === b.status && a.priority === b.priority && a.estimate === b.estimate && a.due === b.due;
 
 /**
- * Per field: Sync's value where Sync changed it since the last run, else the source's. (Whole-ticket
- * "Sync wins" put a stale status back: a title edited here undid a move made there.)
+ * Per field: Ote's value where Ote changed it since the last run, else the source's. (Whole-ticket
+ * "Ote wins" put a stale status back: a title edited here undid a move made there.)
  */
 export function mergeTicket(sync: TicketNorm, remote: TicketNorm, base: TicketNorm): TicketNorm {
   const out = { ...remote };
@@ -51,7 +51,7 @@ export const normRemoteTicket = (r: RemoteTicket): TicketNorm => ({
   due: r.due ?? null,
 });
 
-/** Sync's view of a remote ticket: the shared fields plus what only the source edits. */
+/** Ote's view of a remote ticket: the shared fields plus what only the source edits. */
 export function remoteToTicket(base: Ticket | null, id: string, r: RemoteTicket, projectName: string): Ticket {
   const n = normRemoteTicket(r);
   return {
@@ -76,7 +76,7 @@ export function remoteToTicket(base: Ticket | null, id: string, r: RemoteTicket,
   };
 }
 
-/** A ticket made in Sync that should be filed on the source: not removed, not in a project of my own. */
+/** A ticket made in Ote that should be filed on the source: not removed, not in a project of my own. */
 export const goesToSource = (t: Ticket) => !t.hidden && !t.local && !t.projectId.startsWith("local:");
 
 // ---- state ----
@@ -85,7 +85,7 @@ interface State {
   /** Snapshot of each linked ticket at the last good run (keyed by the source's id). */
   base: Record<string, TicketNorm>;
   /**
-   * Tickets this sync created, by the Sync ticket id they were made for. The link on the record itself
+   * Tickets this sync created, by the Ote ticket id they were made for. The link on the record itself
    * (rowId) can be lost: a device that edits the ticket before it hears back still has the copy
    * without it, and its later write wins — so the record looked unfiled again and was created again.
    * This map keeps the link on the server.
@@ -95,7 +95,7 @@ interface State {
   lastOkAt?: number;
   /** Server version of the sync data read by the last good run: newer records were saved since. */
   seenV?: number;
-  /** Tickets whose Sync edit was refused as stale: still Sync's edit on the next run. */
+  /** Tickets whose Ote edit was refused as stale: still Ote's edit on the next run. */
   retry?: string[];
   lastError?: string | null;
   lastResult?: TicketSummary;
@@ -106,7 +106,7 @@ export interface TicketSummary {
   created: number;
   removed: number;
 }
-const stateFile = () => path.join(process.env.SYNC_DATA_DIR || path.join(process.cwd(), ".data"), "ticket-sync.json");
+const stateFile = () => path.join(process.env.OTE_DATA_DIR || path.join(process.cwd(), ".data"), "ticket-sync.json");
 async function loadState(): Promise<State> {
   try {
     return JSON.parse(await fs.readFile(stateFile(), "utf8")) as State;
@@ -161,9 +161,9 @@ async function run(owner: string, src: TicketSource): Promise<TicketSummary> {
     const canHold = new Set(meta.projects.filter((p) => !p.noBoard).map((p) => p.id));
     const firstStatus = meta.options.status.find((s) => s.group === "to_do")?.name ?? meta.options.status[0]?.name ?? "";
 
-    // Sync
+    // Ote
     const recs = await readCollection(owner, "tickets");
-    // Sync's values go out only for records saved since the last good run (by the server's
+    // Ote's values go out only for records saved since the last good run (by the server's
     // version): a stale read of the sync data once pushed old statuses back
     const readV = Math.max(0, ...recs.map((r) => r.v));
     const savedSince = new Set([...recs.filter((r) => state.seenV === undefined || r.v > state.seenV!).map((r) => r.id), ...(state.retry ?? [])]);
@@ -189,7 +189,7 @@ async function run(owner: string, src: TicketSource): Promise<TicketSummary> {
     let writes = 0;
     const canWrite = () => writes < (src.maxWritesPerRun ?? DEFAULT_MAX_WRITES);
 
-    // made in Sync -> filed on the source, assigned to me
+    // made in Ote -> filed on the source, assigned to me
     for (const t of unlinked) {
       if (!goesToSource(t) || !canHold.has(t.projectId) || !canWrite()) continue;
       const n = normTicket(t);
@@ -244,12 +244,12 @@ async function run(owner: string, src: TicketSource): Promise<TicketSummary> {
           sum.pushed++;
         } catch (e) {
           if (!(e instanceof StaleError)) throw e;
-          retry.push(st.id); // edited there meanwhile: again next run, still as Sync's edit
+          retry.push(st.id); // edited there meanwhile: again next run, still as Ote's edit
         }
       }
     }
 
-    // linked here but no longer assigned to me (or gone): leaves Sync
+    // linked here but no longer assigned to me (or gone): leaves Ote
     if (listed.complete)
       for (const [rowId, st] of S) {
         if (D.has(rowId)) continue;

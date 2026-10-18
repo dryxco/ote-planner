@@ -4,11 +4,11 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-test("store encrypts at rest, round-trips, and explains a wrong SYNC_SECRET", async () => {
+test("store encrypts at rest, round-trips, and explains a wrong OTE_SECRET", async () => {
   const dir = mkdtempSync(path.join(tmpdir(), "sync-store-"));
   const cwd = process.cwd();
   process.chdir(dir);
-  process.env.SYNC_SECRET = "test-secret-one";
+  process.env.OTE_SECRET = "test-secret-one";
   try {
     const { getStore, updateStore } = await import("./store");
     await updateStore((s) => {
@@ -19,23 +19,23 @@ test("store encrypts at rest, round-trips, and explains a wrong SYNC_SECRET", as
     assert.equal((await getStore()).apple[0].appPassword, "abcd-efgh-ijkl-mnop");
 
     // Same file, different key (fresh module instance) -> clear, actionable error.
-    process.env.SYNC_SECRET = "test-secret-two";
+    process.env.OTE_SECRET = "test-secret-two";
     const freshSpec = "./store?wrong-key"; // query string forces a new module instance
     const fresh: typeof import("./store") = await import(freshSpec);
-    await assert.rejects(fresh.getStore(), /SYNC_SECRET/);
+    await assert.rejects(fresh.getStore(), /OTE_SECRET/);
   } finally {
     process.chdir(cwd);
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test("integrations store honors SYNC_DATA_DIR (test servers never touch the real .data)", async () => {
+test("integrations store honors OTE_DATA_DIR (test servers never touch the real .data)", async () => {
   const { mkdtempSync, existsSync } = await import("node:fs");
   const os = await import("node:os");
   const path = await import("node:path");
   const dir = mkdtempSync(path.join(os.tmpdir(), "store-iso-"));
-  const prev = process.env.SYNC_DATA_DIR;
-  process.env.SYNC_DATA_DIR = dir;
+  const prev = process.env.OTE_DATA_DIR;
+  process.env.OTE_DATA_DIR = dir;
   try {
     const { updateStore } = await import("./store");
     await updateStore((s) => {
@@ -43,7 +43,7 @@ test("integrations store honors SYNC_DATA_DIR (test servers never touch the real
     });
     assert.ok(existsSync(path.join(dir, "integrations.json")));
   } finally {
-    if (prev === undefined) delete process.env.SYNC_DATA_DIR;
-    else process.env.SYNC_DATA_DIR = prev;
+    if (prev === undefined) delete process.env.OTE_DATA_DIR;
+    else process.env.OTE_DATA_DIR = prev;
   }
 });

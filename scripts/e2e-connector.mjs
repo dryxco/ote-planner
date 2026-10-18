@@ -1,12 +1,12 @@
 // Connector e2e: Settings → Connector against scripts/mock-connector.mjs, through the real server.
-// Server: SYNC_DATA_DIR=<tmp> SYNC_ALLOWED_USERS=good-user next start -p 3302 (jobs may be off:
+// Server: OTE_DATA_DIR=<tmp> OTE_ALLOWED_USERS=good-user next start -p 3302 (jobs may be off:
 // the test runs the sync with "Sync now"); mock: node scripts/mock-connector.mjs 3399.
-// usage: SYNC_TEST_SESSION=$(node scripts/make-test-session.mjs <tmp> good-user) node scripts/e2e-connector.mjs <base> <mock>
+// usage: OTE_TEST_SESSION=$(node scripts/make-test-session.mjs <tmp> good-user) node scripts/e2e-connector.mjs <base> <mock>
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 
 const [base = "http://127.0.0.1:3302", mock = "http://127.0.0.1:3399"] = process.argv.slice(2);
-const cookie = `sync_session=${process.env.SYNC_TEST_SESSION}`;
+const cookie = `ote_session=${process.env.OTE_TEST_SESSION}`;
 const post = async (path, body) => {
   const r = await fetch(base + path, { method: "POST", headers: { cookie, "content-type": "application/json", origin: base }, body: JSON.stringify(body) });
   return { status: r.status, body: await r.json().catch(() => null) };
@@ -18,7 +18,7 @@ await fetch(mock + "/_reset", { method: "POST" });
 // connect through the Settings sheet
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 393, height: 852 } });
-await ctx.addCookies([{ name: "sync_session", value: process.env.SYNC_TEST_SESSION, url: base }]);
+await ctx.addCookies([{ name: "ote_session", value: process.env.OTE_TEST_SESSION, url: base }]);
 const page = await ctx.newPage();
 await page.goto(base + "/");
 await page.getByLabel("Settings").click();
@@ -28,7 +28,7 @@ await page.getByRole("button", { name: "Connect REST server" }).click();
 await page.getByText(/bad token/).waitFor();
 await page.getByLabel("Token").fill("test-token");
 await page.getByRole("button", { name: "Connect REST server" }).click();
-await page.getByText("owner@example.com").waitFor();
+await page.getByText("owner@example.com").first().waitFor();
 console.log("ok - a wrong token is refused; the right one connects");
 await browser.close();
 const st = await get("/api/connector/status");

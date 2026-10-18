@@ -4,7 +4,7 @@ import type { CalendarEvent, CalendarProvider } from "./types";
 const PREFER: CalendarProvider[] = ["mac", "google", "apple", "ics", "connector"];
 
 /**
- * The same event reaching Sync through two connected calendars (one Google account in Calendar.app and
+ * The same event reaching Ote through two connected calendars (one Google account in Calendar.app and
  * another connected directly, or an invite on two accounts) is shown once. Same title, start, end and
  * all-day = same event. The one shown carries the others' ids in `twins`; hiding any of them hides it.
  */

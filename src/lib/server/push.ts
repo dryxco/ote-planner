@@ -1,5 +1,5 @@
 
-// Plan alerts as Web Push (works for the Sync home-screen app on iPhone, iOS 16.4+): 10 minutes
+// Plan alerts as Web Push (works for the Ote home-screen app on iPhone, iOS 16.4+): 10 minutes
 // before a plan starts and right when it ends, even with the app closed. Only devices that turned
 // alerts on get them — the iPhone; Apple Watch (and a Mac with iPhone Mirroring) show the iPhone's
 // notification, so nothing is sent twice.
@@ -16,7 +16,7 @@ const BEFORE_MIN = 10;
 /** Alerts are sent from this far behind (a missed tick / restart still delivers, but not stale ones). */
 const LATE_OK_MS = 3 * 60_000;
 
-const dir = () => process.env.SYNC_DATA_DIR || path.join(process.cwd(), ".data");
+const dir = () => process.env.OTE_DATA_DIR || path.join(process.cwd(), ".data");
 async function readJson<T>(name: string, fallback: T): Promise<T> {
   try {
     return JSON.parse(await fs.readFile(path.join(dir(), name), "utf8")) as T;
@@ -93,7 +93,7 @@ async function send(devs: PushDevice[], payload: object): Promise<number> {
 export async function sendTest(endpoint: string) {
   const d = (await listDevices()).find((x) => x.sub.endpoint === endpoint);
   if (!d) throw new Error("This device isn't registered for alerts");
-  return send([d], { title: "Sync", body: "Alerts are on for this device.", tag: "sync-test" });
+  return send([d], { title: "Ote", body: "Alerts are on for this device.", tag: "sync-test" });
 }
 
 // ---- scheduler ----
@@ -116,7 +116,7 @@ export function dueAlerts(plans: Plan[], names: Map<string, string>, now: number
     if (before <= now && now - before < LATE_OK_MS)
       out.push({ key: `start:${o.key}`, at: before, title: `${name} in ${BEFORE_MIN} min`, body: `${fmt(o.start)} – ${fmt(o.end)}` });
     if (o.end <= now && now - o.end < LATE_OK_MS)
-      out.push({ key: `end:${o.key}`, at: o.end, title: `${name} — time's up`, body: `Ended ${fmt(o.end)}. Record what you did in Sync.` });
+      out.push({ key: `end:${o.key}`, at: o.end, title: `${name} — time's up`, body: `Ended ${fmt(o.end)}. Record what you did in Ote.` });
   }
   return out;
 }

@@ -236,7 +236,7 @@ export function TicketSheet({ id, onClose }: { id: string; onClose: () => void }
 
           {ticket.local ? (
             <>
-              <p className="mb-2 text-[12px] text-fg/45"># {ticket.projectName} is a project of your own: this ticket stays in Sync and isn&apos;t sent anywhere.</p>
+              <p className="mb-2 text-[12px] text-fg/45"># {ticket.projectName} is a project of your own: this ticket stays in Ote and isn&apos;t sent anywhere.</p>
               <textarea
                 aria-label="Description"
                 value={draft.note ?? ""}
@@ -290,7 +290,7 @@ export function TicketSheet({ id, onClose }: { id: string; onClose: () => void }
               hideTicket(ticket.id);
               onClose();
             }}
-            title="Removes it in Sync only (it stays on the connected service)"
+            title="Removes it in Ote only (it stays on the connected service)"
             className="text-[14px] text-danger-soft"
           >
             {confirmDelete ? "Click again to delete" : "Delete"}

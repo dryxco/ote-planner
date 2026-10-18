@@ -1,7 +1,7 @@
 // A device holding an older copy can't undo what another device did (10/10: to-dos checked off on
 // one device came back unchecked). A is offline while B checks a to-do off; A, still showing it
 // unchecked, renames it; back online, the to-do is renamed AND still checked, on both.
-// usage: node scripts/e2e-stale-device.mjs <baseUrl of a throwaway server (SYNC_DATA_DIR=<tmp>)>
+// usage: node scripts/e2e-stale-device.mjs <baseUrl of a throwaway server (OTE_DATA_DIR=<tmp>)>
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { midnight, withTestSession } from "./grid-helpers.mjs";

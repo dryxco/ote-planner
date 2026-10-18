@@ -96,8 +96,8 @@ export function LoginView() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-[440px] flex-col items-center justify-center gap-6 px-6 text-center">
       <div>
-        <h1 className="text-[28px] font-semibold">Sync</h1>
-        <p className="mt-1 text-[14px] text-fg/55">Plan · Actual</p>
+        <h1 className="text-[28px] font-semibold">Ote</h1>
+        <p className="mt-1 text-[14px] text-fg/55">Keeps your days in order</p>
       </div>
 
       {phase.kind === "waiting" ? (
@@ -169,7 +169,7 @@ export function LoginView() {
           )}
           {methods && !methods.password && !methods.device && (
             <p className="rounded-[12px] bg-fg/[0.06] px-4 py-3 text-left text-[13px] text-fg/70">
-              No sign-in is set up on this server. Set <span className="font-mono">SYNC_PASSWORD</span> in <span className="font-mono">.env.local</span> and restart it.
+              No sign-in is set up on this server. Set <span className="font-mono">OTE_PASSWORD</span> in <span className="font-mono">.env.local</span> and restart it.
             </p>
           )}
         </div>
@@ -187,7 +187,7 @@ export function LoginView() {
       )}
 
       <p data-credit className="fixed inset-x-0 bottom-[max(16px,env(safe-area-inset-bottom))] text-center text-[11.5px] text-fg/35">
-        Sync © {CREDIT.year}{" "}
+        Ote © {CREDIT.year}{" "}
         <a href={CREDIT.url} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">
           {CREDIT.author}
         </a>

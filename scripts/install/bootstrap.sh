@@ -1,13 +1,13 @@
 #!/bin/bash
-# macOS / Linux: makes sure a Node.js 20.9+ is there (downloads the official one into Sync's folder
+# macOS / Linux: makes sure a Node.js 20.9+ is there (downloads the official one into Ote's folder
 # if not, checked against nodejs.org's published checksums), then runs scripts/install.mjs.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 case "$(uname -s)" in
-  Darwin) OS=darwin; BASE=${SYNC_INSTALL_BASE:-"$HOME/Library/Application Support/Sync"} ;;
-  Linux) OS=linux; BASE=${SYNC_INSTALL_BASE:-"${XDG_DATA_HOME:-$HOME/.local/share}/sync"} ;;
-  *) echo "This installer is for macOS and Linux. On Windows, double-click \"Install Sync.cmd\"."; exit 1 ;;
+  Darwin) OS=darwin; BASE=${OTE_INSTALL_BASE:-"$HOME/Library/Application Support/Ote"} ;;
+  Linux) OS=linux; BASE=${OTE_INSTALL_BASE:-"${XDG_DATA_HOME:-$HOME/.local/share}/ote"} ;;
+  *) echo "This installer is for macOS and Linux. On Windows, double-click \"Install Ote.cmd\"."; exit 1 ;;
 esac
 case "$(uname -m)" in
   arm64 | aarch64) ARCH=arm64 ;;
@@ -23,7 +23,7 @@ if [[ -x "$BASE/runtime/bin/node" ]] && new_enough "$BASE/runtime/bin/node"; the
 elif command -v node >/dev/null && new_enough "$(command -v node)"; then
   NODE="$(command -v node)"
 else
-  echo "› Getting Node.js (the engine Sync runs on)"
+  echo "› Getting Node.js (the engine Ote runs on)"
   DIST=https://nodejs.org/dist/latest-v24.x
   TMP=$(mktemp -d)
   trap 'rm -rf "$TMP"' EXIT

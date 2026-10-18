@@ -63,7 +63,7 @@ async function call<T>(base: string, token: string | null, method: string, p: st
   return j as T;
 }
 
-/** Stream a file from the server, made safe to serve from Sync's origin. */
+/** Stream a file from the server, made safe to serve from Ote's origin. */
 async function passFile(base: string, token: string, p: string): Promise<Response> {
   const r = await fetchWithTimeout(`${base}${p}`, { headers: { authorization: `Bearer ${token}` }, cache: "no-store" }, 30_000).catch(() => null);
   if (!r || !r.ok || !r.body) return new Response("not found", { status: r?.status === 404 ? 404 : 502 });
@@ -73,9 +73,9 @@ async function passFile(base: string, token: string, p: string): Promise<Respons
 export const restConnector: ConnectorDef = {
   id: "rest",
   label: "REST server",
-  description: "Your own server implementing Sync's connector API (see src/lib/server/connectors/README.md).",
+  description: "Your own server implementing Ote's connector API (see src/lib/server/connectors/README.md).",
   fields: [
-    { key: "url", label: "Server URL", placeholder: "https://example.com/sync-api", default: process.env.SYNC_CONNECTOR_URL ?? "" },
+    { key: "url", label: "Server URL", placeholder: "https://example.com/sync-api", default: process.env.OTE_CONNECTOR_URL ?? "" },
     { key: "token", label: "Token", secret: true, placeholder: "Bearer token" },
   ],
   async connect(config) {
@@ -112,7 +112,7 @@ export const restConnector: ConnectorDef = {
 
     return {
       tasks: {
-        timeZone: process.env.SYNC_CONNECTOR_TZ || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timeZone: process.env.OTE_CONNECTOR_TZ || Intl.DateTimeFormat().resolvedOptions().timeZone,
         async list() {
           if (!(await has("tasks"))) return { tasks: [], archivedIds: [], complete: false };
           const tz = (await caps()).timeZone;
@@ -174,12 +174,12 @@ export const restConnector: ConnectorDef = {
   },
 };
 
-/** Device-code sign-in against the same API (SYNC_LOGIN_URL, no token needed). */
+/** Device-code sign-in against the same API (OTE_LOGIN_URL, no token needed). */
 export function restLogin(url: string, label = "your server"): LoginProvider {
   const base = trimUrl(url);
   return {
     label,
-    start: () => call("", null, "POST", `${base}/auth/device/start`, { client: "Sync" }),
+    start: () => call("", null, "POST", `${base}/auth/device/start`, { client: "Ote" }),
     poll: (deviceCode) => call("", null, "POST", `${base}/auth/device/poll`, { deviceCode }),
   };
 }

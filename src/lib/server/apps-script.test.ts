@@ -12,7 +12,7 @@ function loadBuilder(): (name: string, color: string, events: unknown[]) => stri
   return mod.exports.buildIcs!;
 }
 
-test("Apps Script feed is read by Sync's iCal parser (timed, all-day, escaping)", () => {
+test("Apps Script feed is read by Ote's iCal parser (timed, all-day, escaping)", () => {
   const buildIcs = loadBuilder();
   const ics = buildIcs("팀, 공유 캘린더", "#0b8043", [
     { id: "abc@google.com", title: "Review; budget, Q4", location: "회의실 3", description: "line1\nline2", allDay: false, start: new Date(Date.UTC(2026, 9, 7, 1, 0)), end: new Date(Date.UTC(2026, 9, 7, 2, 30)) },

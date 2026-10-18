@@ -1,5 +1,5 @@
 // Calendars from this Mac's Apple Calendar (iCloud, Google, Exchange, subscriptions — whatever the
-// Calendar app shows) through the EventKit helper .bin/SyncCalendar.app (tools/ekexport). Read-only.
+// Calendar app shows) through the EventKit helper .bin/OteCalendar.app (tools/ekexport). Read-only.
 // The helper is launched through LaunchServices (`open`) so macOS attributes the calendar permission
 // to it, not to node.
 import { execFile } from "node:child_process";
@@ -13,7 +13,7 @@ import type { Range } from "./ics";
 import { writtenEventIds } from "./calendar-writer";
 
 // The live server runs from a release copy; the helper (and its calendar permission) stays in the repo.
-const APP = process.env.SYNC_CAL_APP || path.join(process.cwd(), ".bin", "SyncCalendar.app");
+const APP = process.env.OTE_CAL_APP || path.join(process.cwd(), ".bin", "OteCalendar.app");
 const SOURCE_TYPES: Record<number, string> = { 0: "On My Mac", 1: "Exchange", 2: "CalDAV", 3: "MobileMe", 4: "Subscribed", 5: "Birthdays" };
 
 // `open -W` can fail to *wait* when several helpers start at once ("Unable to block on application")
@@ -42,7 +42,7 @@ export function runHelper(args: string[]): Promise<unknown> {
         if (data.error) {
           throw new ProviderError(
             data.error === "calendar access denied"
-              ? "Mac calendar access denied — allow 'Sync Calendar' in System Settings → Privacy & Security → Calendars"
+              ? "Mac calendar access denied — allow 'Ote Calendar' in System Settings → Privacy & Security → Calendars"
               : `Mac calendar error: ${data.error}`,
           );
         }
@@ -81,7 +81,7 @@ export async function listMacEvents(range: Range): Promise<CalendarEvent[]> {
   const d = (await runHelper(["events", String(range.start), String(range.end)])) as {
     events: { calendarId: string; id: string; title: string; start: number; end: number; allDay: boolean; color: string; location?: string; ekId?: string }[];
   };
-  // events Sync put on a calendar are already on the timeline as their plans: no ghost for them
+  // events Ote put on a calendar are already on the timeline as their plans: no ghost for them
   const mine = await writtenEventIds();
   return d.events.filter((e) => !e.ekId || !mine.has(e.ekId)).map((e) => ({
     id: `mac:local:${e.calendarId}:${e.id}`,

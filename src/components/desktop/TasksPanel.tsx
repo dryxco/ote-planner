@@ -184,7 +184,7 @@ export function TasksPanel() {
   );
 
   function pickProject(picked: { id: string; name: string }) {
-    // "Create #name": a project of my own, in Sync only
+    // "Create #name": a project of my own, in Ote only
     const p = picked.id === NEW_PROJECT ? { id: addLocalProject(picked.name), name: picked.name } : picked;
     noteProjectPick(p.id);
     setTicketProject(p);

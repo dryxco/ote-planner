@@ -45,7 +45,7 @@ async function shrink(file: File): Promise<string> {
 const STORE_KEY = "sync-agent-chat";
 
 /**
- * Chat with an agent that edits Sync for you ("gym tomorrow at 7 for an hour"). The agent answers with
+ * Chat with an agent that edits Ote for you ("gym tomorrow at 7 for an hour"). The agent answers with
  * operations; they're applied right away here and can be undone (button or ⌘Z) as one step.
  */
 export function AgentChat({ className }: { className?: string }) {

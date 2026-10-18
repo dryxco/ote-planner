@@ -23,9 +23,9 @@ export async function POST(request: Request) {
     : [];
   if (history.length === 0 || history.at(-1)!.role !== "user") return json({ error: "A message is required" }, 400);
   if (JSON.stringify(body?.context ?? null).length > 400_000) return json({ error: "Context is too large" }, 413);
-  if (process.env.SYNC_AGENT_FAKE) {
+  if (process.env.OTE_AGENT_FAKE) {
     // tests: echo a canned answer instead of calling Claude
-    const fake = JSON.parse(process.env.SYNC_AGENT_FAKE) as { reply: string; ops: unknown[] };
+    const fake = JSON.parse(process.env.OTE_AGENT_FAKE) as { reply: string; ops: unknown[] };
     return json(images.length ? { ...fake, ops: [], reply: `${fake.reply} (${images.length} image: ${images[0].media_type})` } : fake);
   }
   try {

@@ -1,16 +1,16 @@
 #!/bin/zsh
 # Safe deploy for a launchd-managed server on macOS (see README → "Run it as a service").
 #   checks (typecheck, lint, unit tests) -> copy the tree into a fresh release dir (APFS clones) ->
-#   build THERE -> switch $SYNC_LIVE_DIR/current -> restart -> health check.
-# Env: SYNC_LIVE_DIR (default ~/sync-live), SYNC_LAUNCHD_LABEL (default local.sync-web), SYNC_PORT (3000).
+#   build THERE -> switch $OTE_LIVE_DIR/current -> restart -> health check.
+# Env: OTE_LIVE_DIR (default ~/ote-live), OTE_LAUNCHD_LABEL (default local.ote), OTE_PORT (3000).
 # The live server never runs from this working tree, so builds made here for testing can't break it,
 # and a failed build leaves the running release untouched.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO=$PWD
-LIVE=${SYNC_LIVE_DIR:-$HOME/sync-live}
-LABEL=${SYNC_LAUNCHD_LABEL:-local.sync-web}
-PORT=${SYNC_PORT:-3000}
+LIVE=${OTE_LIVE_DIR:-$HOME/ote-live}
+LABEL=${OTE_LAUNCHD_LABEL:-local.ote}
+PORT=${OTE_PORT:-3000}
 REL=$LIVE/releases/$(date +%Y%m%d-%H%M%S)
 echo "› typecheck"; npx tsc --noEmit
 echo "› lint"; npx eslint --max-warnings=0 >/dev/null

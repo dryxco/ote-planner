@@ -1,6 +1,6 @@
-// Agent chat: the server (started with SYNC_AGENT_FAKE) returns a canned {reply, ops}; the app applies
+// Agent chat: the server (started with OTE_AGENT_FAKE) returns a canned {reply, ops}; the app applies
 // the ops, shows what it did, and Undo reverts them as one step.
-// usage: SYNC_AGENT_FAKE='{"reply":"Added","ops":[{"op":"add_plan","name":"Gym","activity":"Exercise","start":"2026-10-09T07:00","end":"2026-10-09T08:00"},{"op":"add_todo","name":"Buy milk"},{"op":"delete_plan","id":"nope"}]}' next start …; node scripts/e2e-agent.mjs <base>
+// usage: OTE_AGENT_FAKE='{"reply":"Added","ops":[{"op":"add_plan","name":"Gym","activity":"Exercise","start":"2026-10-09T07:00","end":"2026-10-09T08:00"},{"op":"add_todo","name":"Buy milk"},{"op":"delete_plan","id":"nope"}]}' next start …; node scripts/e2e-agent.mjs <base>
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { isolateSync, seed } from "./grid-helpers.mjs";

@@ -1,4 +1,4 @@
-// Sync service worker: shows plan alerts sent by the server (Web Push) and opens Sync on tap.
+// Ote service worker: shows plan alerts sent by the server (Web Push) and opens Ote on tap.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
@@ -7,10 +7,10 @@ self.addEventListener("push", (e) => {
   try {
     d = e.data ? e.data.json() : {};
   } catch {
-    d = { title: "Sync", body: e.data ? e.data.text() : "" };
+    d = { title: "Ote", body: e.data ? e.data.text() : "" };
   }
   e.waitUntil(
-    self.registration.showNotification(d.title || "Sync", {
+    self.registration.showNotification(d.title || "Ote", {
       body: d.body || "",
       tag: d.tag, // the same alert never stacks twice
       icon: "/icons/icon-192.png",

@@ -8,7 +8,7 @@ import { applyNormToTodo, applyPlanNorm, isBoardRollover, isTimed, normRemote, n
 
 const TZ = "Asia/Seoul"; // npm test runs with TZ=Asia/Seoul, so local dates below match
 before(() => {
-  process.env.SYNC_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "task-sync-"));
+  process.env.OTE_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "task-sync-"));
 });
 
 const task = (o: Partial<RemoteTask> = {}): RemoteTask => ({ id: "x", title: "Report", done: false, date: null, time: null, endTime: null, due: null, ...o });
@@ -20,7 +20,7 @@ test("normalizes both sides to the same shape", () => {
   assert.ok(sameNorm(sync, remote));
 });
 
-test("applying the source's values keeps Sync-only fields (activity, plan)", () => {
+test("applying the source's values keeps Ote-only fields (activity, plan)", () => {
   const t = applyNormToTodo(
     { id: "x", name: "a", activityId: "work", color: "#2f7fd8", planId: "p1", done: false, createdAt: 1 },
     { title: "b", done: true, date: null, time: null, due: "2026-10-10" },
@@ -47,7 +47,7 @@ test("timed tasks <-> Plans", () => {
   assert.equal(p.start, new Date(2026, 9, 8, 14, 0).getTime());
   assert.equal(p.end, new Date(2026, 9, 8, 15, 30).getTime());
   assert.ok(samePlan(planNorm(p, TZ)!, n), "round trip");
-  // Sync-only plans
+  // Ote-only plans
   assert.equal(planNorm({ ...p, repeat: "daily" }, TZ), null);
   assert.equal(planNorm({ ...p, allDay: true }, TZ), null);
   assert.equal(planNorm({ ...p, end: new Date(2026, 9, 9, 1, 0).getTime() }, TZ), null, "overnight");
@@ -117,7 +117,7 @@ test("end to end: a to-do and a plan go out, edits come back, deletes go both wa
   const plan = (await readCollection(owner, "plans")).find((r) => r.id === "p1")!.data as { start: number };
   assert.equal(plan.start, day + 8 * 3600e3);
 
-  // a task added on the board comes in; deleted in Sync goes away there
+  // a task added on the board comes in; deleted in Ote goes away there
   board.tasks.set("t2", { id: "t2", title: "Call Sam", done: false, date: "2026-10-21", time: null, endTime: null, due: null });
   await applyServerChanges(owner, [{ col: "todos", id: "t1", updatedAt: Date.now(), deleted: true }]);
   sum = await syncTasks(owner, board.src);
@@ -126,7 +126,7 @@ test("end to end: a to-do and a plan go out, edits come back, deletes go both wa
   assert.ok(!board.tasks.has("t1"));
   assert.ok((await readCollection(owner, "todos")).some((r) => r.id === "t2" && !r.deleted));
 
-  // archived on the board: removed in Sync
+  // archived on the board: removed in Ote
   await board.src.remove("t2");
   sum = await syncTasks(owner, board.src);
   assert.equal(sum.deletedLocal, 1);

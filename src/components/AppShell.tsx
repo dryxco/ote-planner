@@ -105,11 +105,11 @@ function SideRail() {
   return (
     <nav className="flex w-[76px] shrink-0 flex-col items-center gap-1 border-r border-fg/[0.07] py-4">
       {/* the app icon, on the ground that matches the theme */}
-      <span className="mb-3 block h-[40px] w-[40px]" title="Sync">
+      <span className="mb-3 block h-[40px] w-[40px]" title="Ote">
         {/* eslint-disable-next-line @next/next/no-img-element -- a 40px static icon */}
-        <img src="/icons/icon-192.png" alt="Sync" width={40} height={40} className="h-full w-full rounded-[11px] [[data-theme=light]_&]:hidden" />
+        <img src="/icons/icon-192.png" alt="Ote" width={40} height={40} className="h-full w-full rounded-[11px] [[data-theme=light]_&]:hidden" />
         {/* eslint-disable-next-line @next/next/no-img-element -- a 40px static icon */}
-        <img src="/icons/icon-light-192.png" alt="Sync" width={40} height={40} className="hidden h-full w-full rounded-[11px] shadow-[0_0_0_1px_rgba(0,0,0,0.06)] [[data-theme=light]_&]:block" />
+        <img src="/icons/icon-light-192.png" alt="Ote" width={40} height={40} className="hidden h-full w-full rounded-[11px] shadow-[0_0_0_1px_rgba(0,0,0,0.06)] [[data-theme=light]_&]:block" />
       </span>
       {DESKTOP_TABS.map(({ href, label, Icon }) => {
         const active = href === "/" ? pathname === "/" : pathname.startsWith(href);

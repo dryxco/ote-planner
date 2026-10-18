@@ -29,8 +29,8 @@ export async function POST(request: Request) {
     void journal(applied, { client: request.headers.get("x-sync-client")?.slice(0, 64) ?? null, ua: request.headers.get("user-agent")?.slice(0, 300) ?? null });
     if (body.changes.some((c) => c.col === "todos" || c.col === "plans")) scheduleTaskSync();
     if (body.changes.some((c) => c.col === "tickets")) scheduleTicketSync();
-    else if (!process.env.SYNC_DISABLE_JOBS) nudgeTicketPull();
-    if (body.changes.some((c) => c.col === "plans") && !process.env.SYNC_DISABLE_JOBS) scheduleCalendarWrites();
+    else if (!process.env.OTE_DISABLE_JOBS) nudgeTicketPull();
+    if (body.changes.some((c) => c.col === "plans") && !process.env.OTE_DISABLE_JOBS) scheduleCalendarWrites();
     return json(res);
   } catch (e) {
     return json({ error: `Couldn't save sync changes: ${(e as Error).message}` }, 500);

@@ -219,7 +219,7 @@ export function startSync(): () => void {
               ? "Offline — will sync when you're back online"
               : e instanceof TypeError
                 ? "Can't reach the server — retrying automatically"
-                : `Sync failed: ${e.message}`,
+                : `Ote failed: ${e.message}`,
         });
       })
       .finally(() => {
