@@ -13,6 +13,8 @@ import { allDone, campaignProgress } from "@/lib/campaigns";
 export function ProjectSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
   const { campaigns, activities, settings, todos, addCampaign, updateCampaign, deleteCampaign } = useSync();
   const tickets = useSync((s) => s.tickets ?? []);
+  // its artifacts are deleted with it (its tasks and tickets stay)
+  const docs = useSync((s) => (s.artifacts ?? []).filter((a) => a.campaignId === id).length);
   const meta = useTicketMeta();
   const c = id ? campaigns.find((x) => x.id === id) : undefined;
   const [today] = useState(() => startOfDay(Date.now()));
@@ -102,7 +104,7 @@ export function ProjectSheet({ id, onClose }: { id: string | null; onClose: () =
             onClose();
           }}
         >
-          {armed ? "Confirm delete" : "Delete project"}
+          {armed ? (docs ? `Delete with ${docs} artifact${docs > 1 ? "s" : ""}` : "Confirm delete") : "Delete project"}
         </BigButton>
       )}
     </Sheet>

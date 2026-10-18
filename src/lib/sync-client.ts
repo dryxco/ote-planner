@@ -17,8 +17,8 @@ const FAST_POLL_MS = 1000;
 /** How long a new ticket polls fast for its connector link (one that can't be filed doesn't poll forever). */
 const FILING_WAIT_MS = 2 * 60_000;
 
-type ArrayCol = "activities" | "plans" | "actuals" | "todos" | "goals" | "diary" | "tickets" | "campaigns";
-const ARRAY_COLS: ArrayCol[] = ["activities", "plans", "actuals", "todos", "goals", "diary", "tickets", "campaigns"];
+type ArrayCol = "activities" | "plans" | "actuals" | "todos" | "goals" | "diary" | "tickets" | "campaigns" | "artifacts";
+const ARRAY_COLS: ArrayCol[] = ["activities", "plans", "actuals", "todos", "goals", "diary", "tickets", "campaigns", "artifacts"];
 
 interface Meta {
   since: number;

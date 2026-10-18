@@ -96,6 +96,8 @@ export function ProjectFolders({
   onEdit,
   label = true,
   manage = false,
+  onAddArtifact,
+  renderArtifacts,
 }: {
   /** "Projects" above the folders (left out where the page is already called that). */
   label?: boolean;
@@ -110,6 +112,10 @@ export function ProjectFolders({
   /** "+" on a folder: the panel's add box files into it. Without it (phones), "+" opens an add row in the folder. */
   onAddInto?: (c: Campaign) => void;
   onEdit: (id: string | null) => void;
+  /** "+ Artifact" on each folder (the Projects tab on computers, where the canvas shows them). */
+  onAddArtifact?: (c: Campaign) => void;
+  /** A project's artifacts under its header (the Projects tab on phones). */
+  renderArtifacts?: (c: Campaign, open: boolean) => ReactNode;
 }) {
   const campaigns = useSync((s) => s.campaigns) ?? [];
   const [open, setOpen] = useState<Set<string>>(new Set());
@@ -161,6 +167,8 @@ export function ProjectFolders({
       inlineAdd={!onAddInto}
       onEdit={() => onEdit(c.id)}
       manage={manage}
+      onAddArtifact={onAddArtifact && (() => onAddArtifact(c))}
+      artifacts={renderArtifacts?.(c, open.has(c.id))}
     />
   );
 
@@ -206,8 +214,12 @@ function Folder({
   inlineAdd,
   onEdit,
   manage,
+  onAddArtifact,
+  artifacts,
 }: {
   manage: boolean;
+  onAddArtifact?: () => void;
+  artifacts?: ReactNode;
   c: Campaign;
   date: number;
   now: number;
@@ -254,6 +266,7 @@ function Folder({
   return (
     <section
       data-project={c.id}
+      data-done={c.done ? "1" : undefined}
       onDragOver={(e) => {
         const t = e.dataTransfer.types;
         if (!t.includes(TODO_DRAG_TYPE) && !t.includes(TICKET_DRAG_TYPE)) return;
@@ -301,6 +314,17 @@ function Folder({
           >
             <PlusIcon size={13} />
           </button>
+          {onAddArtifact && (
+            <button
+              data-add-artifact
+              onClick={onAddArtifact}
+              title="A new document in this project"
+              className="flex shrink-0 items-center gap-1 rounded-full px-1.5 text-[11.5px] text-fg/50 hover:bg-fg/[0.08] hover:text-fg"
+            >
+              <PlusIcon size={11} />
+              Artifact
+            </button>
+          )}
           <button onClick={onEdit} className="shrink-0 rounded-full px-1.5 text-[11.5px] text-fg/50 hover:bg-fg/[0.08] hover:text-fg">
             Edit
           </button>
@@ -359,6 +383,7 @@ function Folder({
           <div className="h-full rounded-full bg-[#30d158]" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
         </div>
       )}
+      {artifacts}
       {open && (
         <div className="flex flex-col gap-2 px-2 pb-2">
           {/* stays put (no row appearing / going on focus, which moved what was under a tap) */}

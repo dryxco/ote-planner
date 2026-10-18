@@ -54,7 +54,7 @@ const lastWeek = async (page) => {
 };
 await shot("review", { url: "/review", ...phone, before: lastWeek });
 await shot("goals", { url: "/goals", ...phone, before: lastWeek });
-await shot("projects", { url: "/projects", ...desk, before: (page) => page.getByText("Launch the beta").first().click() });
+await shot("projects", { url: "/projects", ...desk });
 await shot("tickets", {
   url: "/",
   ...desk,

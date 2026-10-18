@@ -2,8 +2,9 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { Activity, Actual, Campaign, DiaryEntry, Goal, Plan, Settings, Ticket, Timer, Todo } from "./types";
+import type { Activity, Actual, Artifact, Campaign, DiaryEntry, Goal, Plan, Settings, Ticket, Timer, Todo } from "./types";
 import { parseOccurrenceKey } from "./plans";
+import { moveKeys, nextOrder } from "./artifacts";
 import { MIN, logicalDate, startOfDay } from "./time";
 
 export const PALETTE = ["#5f5f64", "#76767c", "#2f7fd8", "#e3933a", "#3cb563", "#a3a3a8", "#c9a046", "#30b0c7"];
@@ -51,6 +52,8 @@ export interface SyncState {
   tickets: Ticket[];
   /** Projects: campaigns of tasks and tickets. */
   campaigns: Campaign[];
+  /** Documents linked to projects (see `Artifact`). */
+  artifacts: Artifact[];
   timer: Timer | null;
   settings: Settings;
 
@@ -92,8 +95,15 @@ export interface SyncState {
 
   addCampaign(c: Omit<Campaign, "id" | "createdAt">): string;
   updateCampaign(id: string, patch: Partial<Campaign>): void;
-  /** Its tasks and tickets stay, out of any project. */
+  /** Its tasks and tickets stay, out of any project; its artifacts go with it. */
   deleteCampaign(id: string): void;
+
+  /** A new, empty artifact at the end of the project's; returns its id. */
+  addArtifact(campaignId: string, title?: string): string;
+  updateArtifact(id: string, patch: Partial<Pick<Artifact, "title" | "body">>): void;
+  deleteArtifact(id: string): void;
+  /** Put an artifact at `index` among its project's (0 = first). */
+  moveArtifact(id: string, index: number): void;
 
   addGoal(g: Omit<Goal, "id" | "createdAt">): string;
   updateGoal(id: string, patch: Partial<Goal>): void;
@@ -129,6 +139,7 @@ export const useSync = create<SyncState>()(
       diary: [],
       tickets: [],
       campaigns: [],
+      artifacts: [],
       timer: null,
       settings: DEFAULT_SETTINGS,
 
@@ -369,7 +380,28 @@ export const useSync = create<SyncState>()(
           campaigns: (s.campaigns ?? []).filter((c) => c.id !== id),
           todos: s.todos.map((t) => (t.campaignId === id ? { ...t, campaignId: undefined } : t)),
           tickets: (s.tickets ?? []).map((t) => (t.campaignId === id ? { ...t, campaignId: undefined, updatedAt: Date.now() } : t)),
+          artifacts: (s.artifacts ?? []).filter((a) => a.campaignId !== id),
         }));
+      },
+      addArtifact(campaignId, title = "") {
+        const id = uid();
+        const now = Date.now();
+        set((s) => ({ artifacts: [...(s.artifacts ?? []), { id, campaignId, title, body: null, order: nextOrder(s.artifacts ?? [], campaignId), createdAt: now, updatedAt: now }] }));
+        return id;
+      },
+      updateArtifact(id, patch) {
+        // gone (deleted here or elsewhere while its editor was still saving): nothing to write
+        if (!(get().artifacts ?? []).some((a) => a.id === id)) return;
+        set((s) => ({ artifacts: s.artifacts.map((a) => (a.id === id ? { ...a, ...patch, updatedAt: Date.now() } : a)) }));
+      },
+      deleteArtifact(id) {
+        set((s) => ({ artifacts: (s.artifacts ?? []).filter((a) => a.id !== id) }));
+      },
+      moveArtifact(id, index) {
+        const keys = moveKeys(get().artifacts ?? [], id, index);
+        if (!keys.size) return;
+        // the order only: a move isn't an edit of the document (its "updated" time stays)
+        set((s) => ({ artifacts: s.artifacts.map((a) => (keys.has(a.id) ? { ...a, order: keys.get(a.id)! } : a)) }));
       },
       addGoal(g) {
         const id = uid();

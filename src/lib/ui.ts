@@ -27,6 +27,8 @@ interface UIState {
   date: number;
   entry: EntryTarget | null;
   settingsOpen: boolean;
+  /** The artifact open in the document editor. */
+  artifact: string | null;
   /** Reason passed back from the Google OAuth callback (?calendarError=...). */
   calendarError: string | null;
   setCalendarError(e: string | null): void;
@@ -34,16 +36,19 @@ interface UIState {
   openEntry(t: EntryTarget): void;
   closeEntry(): void;
   setSettingsOpen(open: boolean): void;
+  openArtifact(id: string | null): void;
 }
 
 export const useUI = create<UIState>()((set) => ({
   date: startOfDay(Date.now()),
   entry: null,
   settingsOpen: false,
+  artifact: null,
   calendarError: null,
   setCalendarError: (e) => set({ calendarError: e }),
   setDate: (d) => set({ date: startOfDay(d) }),
   openEntry: (t) => set({ entry: t }),
   closeEntry: () => set({ entry: null }),
   setSettingsOpen: (open) => set({ settingsOpen: open }),
+  openArtifact: (id) => set({ artifact: id }),
 }));

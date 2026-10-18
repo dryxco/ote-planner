@@ -100,6 +100,19 @@ ticket("Onboarding checklist", "In progress", "in_progress", { priority: "Urgent
 ticket("Status page", "In review", "in_progress", { priority: "Medium" });
 ticket("New logo in the footer", "Done", "complete", { since: 0, campaign: true });
 
+// artifacts: documents beside a project (ProseMirror JSON)
+const t = (text) => ({ type: "text", text });
+const para = (text) => ({ type: "paragraph", content: [t(text)] });
+const head = (level, text) => ({ type: "heading", attrs: { level }, content: [t(text)] });
+const bullets = (...items) => ({ type: "bulletList", content: items.map((x) => ({ type: "listItem", content: [para(x)] })) });
+const checks = (...items) => ({ type: "taskList", content: items.map(([x, done]) => ({ type: "taskItem", attrs: { checked: done }, content: [para(x)] })) });
+const doc = (...content) => ({ type: "doc", content });
+const artifact = (campaignId, order, title, body, age) =>
+  put("artifacts", { id: randomUUID(), campaignId, title, body, order, createdAt: now - age, updatedAt: now - age });
+artifact(launch, 0, "Beta brief", doc(head(2, "Goal"), para("A calm landing page and a sign-up that works on phones."), head(2, "Scope"), bullets("Pricing page", "Onboarding checklist", "Status page")), 3 * 3600e3);
+artifact(launch, 1, "Launch checklist", doc(checks(["Write release notes", false], ["Record demo video", false], ["Fix sign-up email", true])), 40 * 60e3);
+artifact(home, 0, "Packing plan", doc(head(2, "Rooms"), bullets("Books first", "Kitchen last"), para("Movers come on the 12th.")), 26 * 3600e3);
+
 // goals for this and last week, and this month
 const weekStart = T - today.getDay() * DAY;
 for (const ws of weeks ? [weekStart - 7 * DAY] : []) {

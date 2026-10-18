@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import type { Todo } from "@/lib/types";
 import { activityOf, useSync } from "@/lib/store";
 import { useUI } from "@/lib/ui";
 import { useNow } from "@/lib/hooks";
+import { useIsDesktop } from "@/lib/media";
 import { logicalDate } from "@/lib/time";
 import { CheckIcon } from "../icons";
 import { TabHeader } from "../period";
@@ -13,31 +15,61 @@ import { TicketSheet } from "../tickets/TicketSheet";
 import { projectColor, useTicketMeta } from "../tickets/ticket-ui";
 import { ProjectFolders } from "./ProjectFolders";
 import { ProjectSheet } from "./ProjectSheet";
+import { ArtifactCanvas, ArtifactList, addArtifactTo } from "./Artifacts";
 
-/** The Projects tab (phones, and the side rail on computers): the folders, and my own # projects. */
+// the editor (and its library) loads when a document is first opened, not with the tab
+const ArtifactEditor = dynamic(() => import("./ArtifactEditor").then((m) => m.ArtifactEditor), { ssr: false });
+
+/**
+ * The Projects tab (phones, and the side rail on computers): the folders, and my own # projects. On
+ * computers the folders keep a column on the left and their artifacts fill the rest as a canvas; on
+ * phones each project lists its artifacts under it.
+ */
 export function ProjectsView() {
   const now = useNow(60_000);
   const dayStart = useSync((s) => s.settings.dayStart);
+  const desktop = useIsDesktop();
   const [ticket, setTicket] = useState<string | null>(null);
   const [sheet, setSheet] = useState<{ id: string | null } | null>(null);
+  const artifact = useUI((s) => s.artifact);
+  const openArtifact = useUI((s) => s.openArtifact);
+  const column = useRef<HTMLDivElement>(null);
+  const folders = (
+    <ProjectFolders
+      date={logicalDate(now, dayStart)}
+      now={now}
+      showTask={() => true}
+      renderTask={(t) => <TaskLine key={t.id} t={t} />}
+      onOpenTicket={setTicket}
+      onEdit={(id) => setSheet({ id })}
+      label={false}
+      manage
+      onAddArtifact={desktop ? (c) => addArtifactTo(c.id) : undefined}
+      renderArtifacts={desktop ? undefined : (c, open) => <ArtifactList c={c} now={now} open={open} />}
+    />
+  );
   return (
     <div className="flex h-full flex-col pt-[max(8px,env(safe-area-inset-top))]">
       <TabHeader title="Projects" />
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(var(--tabbar-h)+48px)] pt-2">
-        <ProjectFolders
-          date={logicalDate(now, dayStart)}
-          now={now}
-          showTask={() => true}
-          renderTask={(t) => <TaskLine key={t.id} t={t} />}
-          onOpenTicket={setTicket}
-          onEdit={(id) => setSheet({ id })}
-          label={false}
-          manage
-        />
-        <MyTags />
+        {desktop ? (
+          <div className="flex items-start pl-[clamp(8px,4vw,80px)]">
+            <div ref={column} data-projects-column className="w-[clamp(400px,42vw,520px)] shrink-0">
+              {folders}
+              <MyTags />
+            </div>
+            <ArtifactCanvas column={column} now={now} />
+          </div>
+        ) : (
+          <>
+            {folders}
+            <MyTags />
+          </>
+        )}
       </div>
       {ticket && <TicketSheet id={ticket} onClose={() => setTicket(null)} />}
       {sheet && <ProjectSheet id={sheet.id} onClose={() => setSheet(null)} />}
+      {artifact && <ArtifactEditor key={artifact} id={artifact} onClose={() => openArtifact(null)} />}
     </div>
   );
 }

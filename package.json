@@ -11,6 +11,13 @@
     "test": "TZ=Asia/Seoul node --import tsx --test src/lib/*.test.ts src/lib/server/*.test.ts"
   },
   "dependencies": {
+    "@tiptap/core": "3.31.4",
+    "@tiptap/extension-image": "3.31.4",
+    "@tiptap/extension-list": "3.31.4",
+    "@tiptap/extensions": "3.31.4",
+    "@tiptap/pm": "3.31.4",
+    "@tiptap/react": "3.31.4",
+    "@tiptap/starter-kit": "3.31.4",
     "ical.js": "^2.2.1",
     "next": "16.4.0",
     "react": "19.3.0",

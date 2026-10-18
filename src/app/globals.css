@@ -178,3 +178,163 @@ button {
 .pill-input::-webkit-calendar-picker-indicator {
   display: none;
 }
+
+/* the artifact editor panel slides in from the right (from below on phones) */
+@keyframes panel-in {
+  from {
+    transform: translateX(28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.animate-panel {
+  animation: panel-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+@media (max-width: 1023px) {
+  .animate-panel {
+    animation: sheet-up 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+}
+
+/* an artifact's document (the TipTap editor) */
+.artifact-doc {
+  outline: none;
+  min-height: 40vh;
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.artifact-doc > * + * {
+  margin-top: 0.45em;
+}
+.artifact-doc h1 {
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 1.3em;
+}
+.artifact-doc h2 {
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 1.35;
+  margin-top: 1.2em;
+}
+.artifact-doc h3 {
+  font-size: 16.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 1.1em;
+}
+.artifact-doc > :first-child {
+  margin-top: 0;
+}
+.artifact-doc ul,
+.artifact-doc ol {
+  padding-left: 1.45em;
+}
+.artifact-doc ul {
+  list-style: disc;
+}
+.artifact-doc ul ul {
+  list-style: circle;
+}
+.artifact-doc ul ul ul {
+  list-style: square;
+}
+.artifact-doc ol {
+  list-style: decimal;
+}
+.artifact-doc ol ol {
+  list-style: lower-alpha;
+}
+.artifact-doc li > p {
+  margin: 0.1em 0;
+}
+.artifact-doc li::marker {
+  color: var(--text-2);
+}
+.artifact-doc ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.1em;
+}
+.artifact-doc ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55em;
+}
+.artifact-doc ul[data-type="taskList"] li > label {
+  flex-shrink: 0;
+  margin-top: 0.3em;
+  user-select: none;
+}
+.artifact-doc ul[data-type="taskList"] li > label input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.artifact-doc ul[data-type="taskList"] li > div {
+  flex: 1;
+  min-width: 0;
+}
+.artifact-doc ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: var(--text-3);
+  text-decoration: line-through;
+}
+.artifact-doc blockquote {
+  border-left: 3px solid var(--line-strong);
+  padding-left: 1em;
+  color: var(--text-2);
+}
+.artifact-doc code {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.88em;
+  padding: 0.12em 0.36em;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+}
+.artifact-doc pre {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  overflow-x: auto;
+}
+.artifact-doc pre code {
+  padding: 0;
+  background: none;
+}
+.artifact-doc hr {
+  border: none;
+  border-top: 1px solid var(--line-strong);
+  margin: 1.4em 0;
+}
+.artifact-doc a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.artifact-doc img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  margin: 0.6em 0;
+}
+.artifact-doc .ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.artifact-doc hr.ProseMirror-selectednode {
+  outline-offset: 6px;
+}
+.artifact-doc p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--text-3);
+  pointer-events: none;
+}

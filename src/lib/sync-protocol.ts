@@ -4,7 +4,7 @@
 // Deletions are tombstones so they reach other devices. The server keeps a monotonically
 // increasing version; a client pulls everything changed after the version it last saw.
 
-export const SYNC_COLLECTIONS = ["activities", "plans", "actuals", "todos", "goals", "diary", "tickets", "campaigns", "meta"] as const;
+export const SYNC_COLLECTIONS = ["activities", "plans", "actuals", "todos", "goals", "diary", "tickets", "campaigns", "artifacts", "meta"] as const;
 export type SyncCollection = (typeof SYNC_COLLECTIONS)[number];
 
 /** Singletons stored in the "meta" collection. */

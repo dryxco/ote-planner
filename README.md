@@ -31,7 +31,7 @@ cloud service, and your data never leaves your machine. Your phone connects to i
 
 | | |
 | --- | --- |
-| ![Projects with their tasks and tickets](docs/screenshots/projects.png) | **Projects.** Group tasks and tickets toward one goal, with a due date and a progress bar. Complete a project once everything in it is done. |
+| ![Projects with their artifacts linked beside them](docs/screenshots/projects.png) | **Projects.** Group tasks and tickets toward one goal, with a due date and a progress bar. Next to each project, its **Artifacts**: documents (briefs, checklists, notes) linked to it like nodes, opening into a simple editor. |
 | ![A kanban board of tickets](docs/screenshots/tickets.png) | **Tickets.** A kanban board for bigger pieces of work. Type `#Website` in the add box to file a ticket on a project. |
 | ![A month of diary notes](docs/screenshots/diary.png) | **Diary.** A short note for each day, as a list or a month calendar. |
 

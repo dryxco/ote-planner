@@ -137,6 +137,31 @@ export interface Campaign {
   createdAt: number;
 }
 
+/**
+ * A document linked to a project (a page like a Slack canvas / Notion page). The body is the editor's
+ * document as JSON (ProseMirror / TipTap); images in it point at /api/artifacts/media, never data: URLs.
+ */
+export interface Artifact {
+  id: string;
+  /** The project (Campaign) it belongs to. */
+  campaignId: string;
+  title: string;
+  body: ArtifactDoc | null;
+  /** Place among its project's artifacts (smaller first). */
+  order: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** A node of an artifact's document (ProseMirror JSON). */
+export interface ArtifactDoc {
+  type: string;
+  attrs?: Record<string, unknown>;
+  content?: ArtifactDoc[];
+  marks?: { type: string; attrs?: Record<string, unknown> }[];
+  text?: string;
+}
+
 /** A short day note (one per calendar date; id = `diary-YYYY-MM-DD` so devices agree). */
 export interface DiaryEntry {
   id: string;

@@ -83,12 +83,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (desktop) {
     // computers: side rail instead of the docked tab bar; Today becomes the three-pane home,
-    // other tabs stay phone-width in the middle
+    // Projects spreads out (its artifacts' canvas), other tabs stay phone-width in the middle
     return (
       <div className="fixed inset-0 flex overflow-hidden bg-bg" style={{ ["--tabbar-h" as string]: "16px" }}>
         <SideRail />
         <main className="relative min-h-0 min-w-0 flex-1">
-          {hydrated ? pathname === "/" ? children : <div className="relative mx-auto h-full max-w-[560px]">{children}</div> : null}
+          {hydrated ? pathname === "/" || pathname.startsWith("/projects") ? children : <div className="relative mx-auto h-full max-w-[560px]">{children}</div> : null}
         </main>
         {sheets}
       </div>
@@ -236,7 +236,7 @@ function ReloadOnDeploy() {
         if (loaded === null) loaded = buildId;
         else if (buildId !== loaded) {
           const ui = useUI.getState();
-          if (!ui.entry && !ui.settingsOpen) window.location.reload();
+          if (!ui.entry && !ui.settingsOpen && !ui.artifact) window.location.reload();
         }
       } catch {}
     };
