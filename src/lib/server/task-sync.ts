@@ -36,7 +36,8 @@ export interface PlanNorm {
   end: string; // HH:MM
 }
 /** `done` on a plan = whether Ote had it done (a confirmed actual) when its status was last pushed. */
-type Base = { kind: "todo"; n: Norm } | { kind: "plan"; n: PlanNorm; done?: boolean };
+/** `rolled`: `n` is a date the board rolled the plan to (not taken into Ote; ignored while the board keeps it). */
+type Base = { kind: "todo"; n: Norm } | { kind: "plan"; n: PlanNorm; done?: boolean; rolled?: boolean };
 
 interface State {
   /** Project of each linked task at the last run (for the activity <-> project merge). */
@@ -148,8 +149,10 @@ export function planNormRemote(d: RemoteTask): PlanNorm {
  * A board that rolls open past tasks over to today also catches a past plan Ote never confirmed. A
  * plan is a time that's gone, not unfinished work: that move isn't taken back into Ote.
  */
+// The move can be to any day up to today: the day it rolled them on is "yesterday" once midnight
+// passes (checking for *today* only let what was skipped all day in at 00:00).
 export const isBoardRollover = (sync: PlanNorm, remote: PlanNorm, today: string) =>
-  sync.date < today && remote.date >= today && remote.date > sync.date && remote.title === sync.title && remote.start === sync.start && remote.end === sync.end;
+  sync.date < today && remote.date <= today && remote.date > sync.date && remote.title === sync.title && remote.start === sync.start && remote.end === sync.end;
 
 export const samePlan = (a: PlanNorm, b: PlanNorm) => a.title === b.title && a.date === b.date && a.start === b.start && a.end === b.end;
 
@@ -346,9 +349,11 @@ async function run(owner: string, src: TaskSource): Promise<Summary> {
             }
             const bn = b?.kind === "plan" ? b.n : null;
             const sChanged = !bn || (!samePlan(spn!, bn) && syncEdited(id));
-            if (!sChanged && src.rollsOver && isBoardRollover(spn!, dn, z.ymd(now))) {
+            // a rolled date already skipped stays skipped while the board keeps it (whatever day it is now)
+            const stillRolled = b?.kind === "plan" && !!b.rolled && samePlan(dn, b.n);
+            if (!sChanged && src.rollsOver && (stillRolled || isBoardRollover(spn!, dn, z.ymd(now)))) {
               // keep the plan on its day; remember the board's value so it isn't pushed back (and rolled again)
-              state.base[id] = { kind: "plan", n: dn, ...(b?.kind === "plan" && b.done ? { done: true } : {}) };
+              state.base[id] = { kind: "plan", n: dn, rolled: true, ...(b?.kind === "plan" && b.done ? { done: true } : {}) };
               sum.skipped++;
             } else if (!sChanged) {
               setPlan(id, applyPlanNorm(sp!, dn, id, now, tz));

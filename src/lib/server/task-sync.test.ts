@@ -62,6 +62,37 @@ test("a board's rollover of a past plan to today isn't taken as a move", () => {
   assert.equal(isBoardRollover(p, { ...p, date: "2026-10-17", start: "14:00" }, "2026-10-17"), false);
   assert.equal(isBoardRollover({ ...p, date: "2026-10-17" }, { ...p, date: "2026-10-18" }, "2026-10-17"), false);
   assert.equal(isBoardRollover(p, { ...p, date: "2026-10-13" }, "2026-10-17"), false);
+  // after midnight the day it rolled to is yesterday: still the board's move
+  assert.equal(isBoardRollover({ ...p, date: "2026-10-19" }, { ...p, date: "2026-10-22" }, "2026-10-23"), true);
+  // moved on purpose to a day still ahead: followed
+  assert.equal(isBoardRollover(p, { ...p, date: "2026-10-25" }, "2026-10-23"), false);
+});
+
+test("a board that rolls past plans forward: skipped, and still skipped on the next runs", async () => {
+  const { syncTasks } = await import("./task-sync");
+  const { applyServerChanges, readCollection } = await import("./syncdb");
+  const owner = "rollover";
+  const board = memoryBoard();
+  board.src.rollsOver = true;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const past = today.getTime() - 3 * 86400e3;
+  await applyServerChanges(owner, [
+    { col: "plans", id: "r1", updatedAt: 1, data: { id: "r1", name: "Standup", activityId: "other", color: "#000", allDay: false, start: past + 9 * 3600e3, end: past + 9.5 * 3600e3, repeat: "never", reminder: "activity", endConfirmation: "activity", createdAt: 1 } },
+  ]);
+  await syncTasks(owner, board.src);
+  const { ymd } = (await import("./task-sync")).zoned(TZ);
+  // the board rolled it to yesterday (e.g. opened late last night; now it's past midnight)
+  board.tasks.set("r1", { ...board.tasks.get("r1")!, date: ymd(today.getTime() - 86400e3) });
+  for (let i = 0; i < 2; i++) {
+    const sum = await syncTasks(owner, board.src);
+    assert.equal(sum.pulledUpdates, 0, `run ${i + 1}: not taken in`);
+    const p = (await readCollection(owner, "plans")).find((r) => r.id === "r1")!.data as { start: number };
+    assert.equal(p.start, past + 9 * 3600e3, "the plan stays on its day");
+  }
+  // changed on the board on purpose (another time): followed
+  board.tasks.set("r1", { ...board.tasks.get("r1")!, time: "10:00", endTime: "10:30" });
+  assert.equal((await syncTasks(owner, board.src)).pulledUpdates, 1);
 });
 
 /** A task board in memory: what a connector would talk to. */
