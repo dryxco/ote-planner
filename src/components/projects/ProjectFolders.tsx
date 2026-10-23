@@ -9,6 +9,7 @@ import { ChevronRight, PlusIcon } from "../icons";
 import { cx } from "../ui";
 import { TODO_DRAG_TYPE, TICKET_DRAG_TYPE, getDraggingTodo, setDraggingTicket } from "../today/Timeline";
 import { TicketRow, projectColor, useTicketMeta } from "../tickets/ticket-ui";
+import { PointMenu } from "./Artifacts";
 
 const OPEN_KEY = "sync-open-projects";
 const FOLDED_KEY = "sync-projects-folded";
@@ -245,6 +246,7 @@ function Folder({
   const tickets = useSync((s) => s.tickets ?? []);
   const meta = useTicketMeta();
   const [over, setOver] = useState(false);
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [showDone, setShowDone] = useState(false);
   const items = campaignItems(c, todos, tickets);
   const progress = campaignProgress(c, todos, tickets);
@@ -301,7 +303,35 @@ function Folder({
       )}
     >
       {/* line 1: name and actions; line 2: what it's linked to, and how it's going */}
-      <header className="px-3 py-2">
+      <header
+        className="px-3 py-2"
+        onContextMenu={
+          onAddArtifact
+            ? (e) => {
+                e.preventDefault();
+                setMenu({ x: e.clientX, y: e.clientY });
+              }
+            : undefined
+        }
+      >
+        {menu && onAddArtifact && (
+          <PointMenu
+            x={menu.x}
+            y={menu.y}
+            onClose={() => setMenu(null)}
+            items={[
+              {
+                label: (
+                  <>
+                    <PlusIcon size={12} className="shrink-0 text-fg/50" />
+                    New artifact in this project
+                  </>
+                ),
+                run: onAddArtifact,
+              },
+            ]}
+          />
+        )}
         <div className="flex items-center gap-2">
           <button onClick={onFlip} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-2 text-left">
             <ChevronRight size={12} className={cx("shrink-0 text-fg/50 transition-transform", open && "rotate-90")} />

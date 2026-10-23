@@ -1,6 +1,7 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import type { Artifact, Campaign } from "@/lib/types";
 import { useSync } from "@/lib/store";
 import { useUI } from "@/lib/ui";
@@ -23,11 +24,67 @@ const PORT_Y = 20;
 /** ⌥← / ⌥→ moves a node this far. */
 const NUDGE = 24;
 
-/** A new artifact in the project, opened in the editor. */
-export function addArtifactTo(campaignId: string) {
+/** A new artifact in the project ("" = none), opened in the editor; `at` leaves its node there on the canvas. */
+export function addArtifactTo(campaignId: string, at?: { x: number; y: number }) {
   const id = useSync.getState().addArtifact(campaignId);
+  if (at) useSync.getState().placeArtifact(id, at);
   useUI.getState().openArtifact(id);
 }
+
+/** A right-click menu at the pointer (kept inside the window); goes on a pick, Escape, a click elsewhere or a wheel scroll
+ * (not any scroll event: a list growing or shrinking scrolls its container too). */
+export function PointMenu({ x, y, items, onClose }: { x: number; y: number; items: { label: ReactNode; run: () => void }[]; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  useLayoutEffect(() => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    setPos({ left: Math.max(8, Math.min(x, window.innerWidth - r.width - 8)), top: Math.max(8, Math.min(y, window.innerHeight - r.height - 8)) });
+  }, [x, y]);
+  useEffect(() => {
+    const away = (e: Event) => {
+      if (!ref.current?.contains(e.target as Node)) onClose();
+    };
+    const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("pointerdown", away, true);
+    window.addEventListener("wheel", onClose, { capture: true, passive: true });
+    window.addEventListener("keydown", key);
+    window.addEventListener("blur", onClose);
+    return () => {
+      window.removeEventListener("pointerdown", away, true);
+      window.removeEventListener("wheel", onClose, { capture: true });
+      window.removeEventListener("keydown", key);
+      window.removeEventListener("blur", onClose);
+    };
+  }, [onClose]);
+  return createPortal(
+    <div
+      ref={ref}
+      role="menu"
+      data-point-menu
+      onContextMenu={(e) => e.preventDefault()}
+      style={pos ?? { left: x, top: y, visibility: "hidden" }}
+      className="animate-fade fixed z-[200] flex w-max min-w-[200px] max-w-[320px] flex-col rounded-[12px] border border-fg/10 bg-surface p-1 shadow-2xl"
+    >
+      {items.map((it, i) => (
+        <button
+          key={i}
+          role="menuitem"
+          onClick={() => {
+            onClose();
+            it.run();
+          }}
+          className="flex items-center gap-2 truncate rounded-[8px] px-3 py-2 text-left text-[13.5px] hover:bg-fg/[0.06]"
+        >
+          {it.label}
+        </button>
+      ))}
+    </div>,
+    document.body,
+  );
+}
+
+type Menu = { x: number; y: number; items: { label: ReactNode; run: () => void }[] };
 
 type Card = { id: string; top: number; done: boolean };
 /** The node being dragged: how far it has come, and whether it goes back in line (Shift). */
@@ -52,7 +109,9 @@ export function ArtifactCanvas({ column, now }: { column: RefObject<HTMLElement 
   const [width, setWidth] = useState(0);
   const [hot, setHot] = useState<string | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
+  const [menu, setMenu] = useState<Menu | null>(null);
   const dragged = useRef(false);
+  const campaigns = useSync((s) => s.campaigns) ?? [];
 
   // where each project's card is (they move as folders open and close)
   useLayoutEffect(() => {
@@ -173,8 +232,49 @@ export function ArtifactCanvas({ column, now }: { column: RefObject<HTMLElement 
     };
   }, [drag]);
 
+  // right-click: a new artifact right there, in the project whose row it's in (or on its own)
+  const onMenu = (e: React.MouseEvent) => {
+    const me = ref.current;
+    if (!me || !cards.length) return;
+    e.preventDefault();
+    const r = me.getBoundingClientRect();
+    const cx0 = e.clientX - r.left;
+    const cy0 = e.clientY - r.top;
+    const node = (e.target as HTMLElement).closest<HTMLElement>("[data-artifact-node]");
+    const fromNode = node ? spots.find((p) => p.a.id === node.dataset.artifactNode)?.card : undefined;
+    const card = fromNode ?? [...cards].reverse().find((c) => c.top <= cy0) ?? cards[0];
+    const name = campaigns.find((c) => c.id === card.id)?.name ?? "this project";
+    // the node's top-left at the pointer (inside the canvas), from its card's top
+    const at = { x: Math.max(0, Math.min(maxX, cx0 - NODE_X)), y: Math.max(0, cy0 - NODE_H / 2) - card.top };
+    setMenu({
+      x: e.clientX,
+      y: e.clientY,
+      items: [
+        {
+          label: (
+            <>
+              <PlusIcon size={12} className="shrink-0 text-fg/50" />
+              <span className="truncate">New artifact in {name}</span>
+            </>
+          ),
+          run: () => addArtifactTo(card.id, node ? undefined : at),
+        },
+        {
+          label: (
+            <>
+              <PlusIcon size={12} className="shrink-0 text-fg/50" />
+              New artifact (no project)
+            </>
+          ),
+          run: () => addArtifactTo(""),
+        },
+      ],
+    });
+  };
+
   return (
-    <div ref={ref} data-artifact-canvas className="relative min-w-0 flex-1" style={{ height }}>
+    <div ref={ref} data-artifact-canvas className="relative min-h-[calc(100dvh-160px)] min-w-0 flex-1" style={{ height }} onContextMenu={onMenu}>
+      {menu && <PointMenu {...menu} onClose={() => setMenu(null)} />}
       <svg className="pointer-events-none absolute left-0 top-0 overflow-visible" width={Math.max(NODE_X, width)} height={height} aria-hidden>
         {spots.map((p) => {
           const q = at(p);
@@ -342,8 +442,32 @@ export function ArtifactGallery({ now }: { now: number }) {
     const id = useSync.getState().addArtifact(shelf === "all" ? "" : shelf);
     openArtifact(id);
   };
+  const [menu, setMenu] = useState<Menu | null>(null);
+  const shelfName = shelf === "all" || shelf === "" ? null : nameOf(shelf);
   return (
-    <div data-artifact-gallery className="mx-auto max-w-[1100px]">
+    <div
+      data-artifact-gallery
+      className="mx-auto min-h-[60vh] max-w-[1100px]"
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setMenu({
+          x: e.clientX,
+          y: e.clientY,
+          items: [
+            {
+              label: (
+                <>
+                  <PlusIcon size={12} className="shrink-0 text-fg/50" />
+                  <span className="truncate">{shelfName ? `New artifact in ${shelfName}` : "New artifact"}</span>
+                </>
+              ),
+              run: create,
+            },
+          ],
+        });
+      }}
+    >
+      {menu && <PointMenu {...menu} onClose={() => setMenu(null)} />}
       <div className="mb-4 flex items-center gap-2">
         <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
           {shelves.map((x) => (

@@ -99,7 +99,48 @@ try {
   st = await store(page);
   assert.equal(st.artifacts.find((a) => a.id === mine.id).campaignId, "");
 
-  // 6) phones: the same button and gallery
+  // 6) right-click: on the canvas, a new artifact right where it was clicked, in that row's project
+  const c2 = await page.locator('[data-project="c2"]').boundingBox();
+  const canvas = await page.locator("[data-artifact-canvas]").boundingBox();
+  const click = { x: canvas.x + 420, y: c2.y + 140 }; // empty space right of the line of nodes
+  await page.mouse.click(click.x, click.y, { button: "right" });
+  const menu = page.locator("[data-point-menu]");
+  await menu.waitFor();
+  assert.match(await menu.textContent(), /New artifact in Move house/);
+  assert.match(await menu.textContent(), /New artifact \(no project\)/);
+  await page.screenshot({ path: `${shots}/canvas-menu.png` });
+  await menu.getByRole("menuitem", { name: /Move house/ }).click();
+  await ed.waitFor();
+  await page.keyboard.type("Right here");
+  await page.waitForTimeout(900);
+  await page.keyboard.press("Escape");
+  st = await store(page);
+  const here = st.artifacts.find((a) => a.title === "Right here");
+  assert.equal(here.campaignId, "c2");
+  const hb2 = await page.locator(`[data-artifact-node="${here.id}"]`).boundingBox();
+  assert.ok(Math.abs(hb2.x - click.x) <= 2 && Math.abs(hb2.y + hb2.height / 2 - click.y) <= 2, `placed at the pointer (${hb2.x - click.x}, ${hb2.y + hb2.height / 2 - click.y})`);
+  // Escape closes the menu without making anything
+  await page.mouse.click(click.x, canvas.y + 600, { button: "right" }); // below the projects: still the canvas
+  await menu.waitFor();
+  await page.keyboard.press("Escape");
+  assert.equal(await menu.count(), 0);
+  // a project's header: new artifact in it
+  await page.locator('[data-project="c1"] header').click({ button: "right", position: { x: 200, y: 30 } });
+  await menu.getByRole("menuitem", { name: "New artifact in this project" }).click();
+  await ed.waitFor();
+  assert.match(await ed.locator("header").textContent(), /Launch site/);
+  await page.keyboard.press("Escape"); // untouched: not kept
+  // the gallery: new artifact (in the shelf's project)
+  await btn.click();
+  await page.locator('[data-shelf="c1"]').click();
+  await page.locator("[data-artifact-gallery]").click({ button: "right", position: { x: 500, y: 400 } });
+  await menu.getByRole("menuitem", { name: "New artifact in Launch site" }).click();
+  await ed.waitFor();
+  assert.match(await ed.locator("header").textContent(), /Launch site/);
+  await page.keyboard.press("Escape");
+  console.log("ok - right-click: a new artifact on the canvas (at the pointer), on a project, in the gallery");
+
+  // 7) phones: the same button and gallery
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await withTestSession(phone);
   const p2 = await phone.newPage();
