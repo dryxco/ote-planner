@@ -151,6 +151,8 @@ export interface Artifact {
   order: number;
   /** How far right of its column its node sits on the canvas (px); missing = in line. */
   x?: number;
+  /** Placed freely (dragged there): how far below its project card's top its node sits (px). Missing = in its project's line. */
+  y?: number;
   createdAt: number;
   updatedAt: number;
 }

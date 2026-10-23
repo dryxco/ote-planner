@@ -119,8 +119,9 @@ try {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.waitForTimeout(300);
 
-  // drag the last node to the top: a straight line marks the spot, the order follows
+  // Shift-drag the last node to the top: a straight line marks the spot, the order follows, it stays in line
   const from = nodes[2];
+  await page.keyboard.down("Shift");
   await page.mouse.move(from.x + 60, from.y + 40);
   await page.mouse.down();
   for (let i = 1; i <= 8; i++) await page.mouse.move(from.x + 60, from.y + 40 - (i * (from.y - nodes[0].y + 10)) / 8);
@@ -134,51 +135,76 @@ try {
   assert.ok(lineBox.y < nodes[0].y && lineBox.y > nodes[0].y - 12, "above the first node");
   await page.screenshot({ path: `${shots}/desktop-dark-drag.png` });
   await page.mouse.up();
+  await page.keyboard.up("Shift");
   await page.waitForTimeout(200);
   let st = await store(page);
   const order = st.artifacts.filter((a) => a.campaignId === "c-launch").sort((a, b) => a.order - b.order).map((a) => a.id);
   assert.deepEqual(order, ["a-checklist", "a-brief", "a-copy"]);
+  assert.equal(st.artifacts.find((a) => a.id === "a-checklist").y, undefined, "in line, not placed");
+  const lined = await page.locator('[data-artifact-node="a-checklist"]').boundingBox();
+  assert.ok(Math.abs(lined.y - nodes[0].y) <= 1 && Math.abs(lined.x - nodes[0].x) <= 1, "on the line's first spot");
   assert.equal(await page.locator("[data-artifact-editor]").count(), 0, "a drag doesn't open it");
-  console.log("ok - drag reorders nodes (a straight 2px drop line)");
+  console.log("ok - Shift-drag reorders nodes in line (a straight 2px drop line)");
 
-  // drag a node sideways: it stays there (order unchanged), its curve runs to it, a reload keeps it
-  const brief = await page.locator('[data-artifact-node="a-brief"]').boundingBox();
+  // a plain drag leaves a node where it's dropped, over another node if need be; no drop line
+  const nodeBox = (id) => page.locator(`[data-artifact-node="${id}"]`).boundingBox();
+  const brief = await nodeBox("a-brief");
+  const under = await nodeBox("a-checklist"); // first in line now
   await page.mouse.move(brief.x + 60, brief.y + 40);
   await page.mouse.down();
-  for (let i = 1; i <= 8; i++) await page.mouse.move(brief.x + 60 + i * 20, brief.y + 40);
+  for (let i = 1; i <= 8; i++) await page.mouse.move(brief.x + 60 + i * 15, brief.y + 40 + (i * (under.y - brief.y + 30)) / 8);
+  assert.equal(await page.locator("[data-drop-line]").count(), 0, "no line without Shift");
   await page.mouse.up();
   await page.waitForTimeout(200);
-  const moved = await page.locator('[data-artifact-node="a-brief"]').boundingBox();
-  assert.ok(Math.abs(moved.x - brief.x - 160) <= 2 && Math.abs(moved.y - brief.y) <= 1, `moved 160px right (${moved.x - brief.x})`);
+  const moved = await nodeBox("a-brief");
+  assert.ok(Math.abs(moved.x - brief.x - 120) <= 2 && Math.abs(moved.y - (under.y + 30)) <= 2, `left where dropped (${moved.x - brief.x}, ${moved.y - under.y})`);
+  assert.ok(moved.y < under.y + under.height && moved.x < under.x + under.width, "over another node");
   st = await store(page);
-  assert.equal(st.artifacts.find((a) => a.id === "a-brief").x, 160, "x kept");
+  const placed = st.artifacts.find((a) => a.id === "a-brief");
+  assert.equal(placed.x, 120, "x kept");
+  assert.equal(placed.y, Math.round(moved.y - card.y), "y kept from its card's top");
   assert.deepEqual(st.artifacts.filter((a) => a.campaignId === "c-launch").sort((a, b) => a.order - b.order).map((a) => a.id), order, "order unchanged");
-  const curveEnd = await page.locator('[data-curve="a-brief"]').evaluate((el) => {
-    const r = el.getBoundingClientRect();
-    return r.right;
-  });
+  const curveEnd = await page.locator('[data-curve="a-brief"]').evaluate((el) => el.getBoundingClientRect().right);
   assert.ok(Math.abs(curveEnd - moved.x) <= 2, "the curve reaches the node");
-  assert.equal(await page.locator("[data-artifact-editor]").count(), 0, "a sideways drag doesn't open it");
+  // the others close up the line
+  assert.ok(Math.abs((await nodeBox("a-copy")).y - nodes[1].y) <= 1, "a-copy moves up into the gap");
+  assert.equal(await page.locator("[data-artifact-editor]").count(), 0, "a drag doesn't open it");
+  await page.screenshot({ path: `${shots}/desktop-dark-node-moved.png` });
   // dragged far right: it stops at the canvas's edge
   await page.mouse.move(moved.x + 60, moved.y + 40);
   await page.mouse.down();
   for (let i = 1; i <= 8; i++) await page.mouse.move(moved.x + 60 + i * 300, moved.y + 40);
   await page.mouse.up();
-  const edge = await page.locator('[data-artifact-node="a-brief"]').boundingBox();
+  const edge = await nodeBox("a-brief");
   assert.ok(edge.x + edge.width <= 1440 && edge.x > moved.x, "kept inside the window");
-  await page.screenshot({ path: `${shots}/desktop-dark-node-moved.png` });
-  // ⌥← nudges it back
+  // ⌥← / ⌥↓ nudge it
   await page.locator('[data-artifact-node="a-brief"]').focus();
   await page.keyboard.press("Alt+ArrowLeft");
+  await page.keyboard.press("Alt+ArrowDown");
   await page.waitForTimeout(100);
-  const nudged = await page.locator('[data-artifact-node="a-brief"]').boundingBox();
-  assert.ok(Math.abs(edge.x - nudged.x - 24) <= 1, "⌥← moves it 24px left");
+  const nudged = await nodeBox("a-brief");
+  assert.ok(Math.abs(edge.x - nudged.x - 24) <= 1 && Math.abs(nudged.y - edge.y - 24) <= 1, "⌥← / ⌥↓ move it 24px");
   await page.reload();
   await page.locator('[data-artifact-node="a-brief"]').waitFor();
   await page.waitForTimeout(300);
-  const reloaded = await page.locator('[data-artifact-node="a-brief"]').boundingBox();
-  assert.ok(Math.abs(reloaded.x - nudged.x) <= 1, "a reload keeps its place");
-  console.log("ok - nodes move left and right too, inside the canvas, and stay there");
+  const reloaded = await nodeBox("a-brief");
+  assert.ok(Math.abs(reloaded.x - nudged.x) <= 1 && Math.abs(reloaded.y - nudged.y) <= 1, "a reload keeps its place");
+  // Shift-drag puts it back in line
+  await page.keyboard.down("Shift");
+  await page.mouse.move(reloaded.x + 60, reloaded.y + 40);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) await page.mouse.move(reloaded.x + 60 - (i * (reloaded.x - nodes[0].x)) / 8, reloaded.y + 40 + (i * (nodes[2].y + 200 - reloaded.y)) / 8);
+  await page.mouse.up();
+  await page.keyboard.up("Shift");
+  await page.waitForTimeout(200);
+  st = await store(page);
+  const back = st.artifacts.find((a) => a.id === "a-brief");
+  assert.equal(back.y, undefined, "back in line");
+  assert.equal(back.x, undefined);
+  assert.deepEqual(st.artifacts.filter((a) => a.campaignId === "c-launch").sort((a, b) => a.order - b.order).map((a) => a.id), ["a-checklist", "a-copy", "a-brief"], "at the end, where it was dropped");
+  const end = await nodeBox("a-brief");
+  assert.ok(Math.abs(end.x - nodes[0].x) <= 1 && Math.abs(end.y - nodes[2].y) <= 1, "on the line's third spot");
+  console.log("ok - a plain drag places a node anywhere (over others too) and it stays; Shift-drag puts it back in line");
 
   // a new artifact from the port of an empty project; the editor opens on its title
   const healthPort = await page.locator('[data-project="c-health"]').evaluate((el) => {

@@ -94,6 +94,25 @@ test("store: add at the end, edit stamps updatedAt, move keeps it, delete", () =
   assert.deepEqual(s().artifacts.map((x) => x.id), [b]);
 });
 
+test("store: a node placed freely keeps its spot; moved in line (shift-drag) it goes back to the line", () => {
+  useSync.setState({ artifacts: [] });
+  const s = () => useSync.getState();
+  const a = s().addArtifact("c1");
+  const b = s().addArtifact("c1");
+  const before = s().artifacts.find((x) => x.id === b)!.updatedAt;
+  s().placeArtifact(b, { x: 40.4, y: -12 });
+  let me = s().artifacts.find((x) => x.id === b)!;
+  assert.deepEqual([me.x, me.y], [40, -12]);
+  assert.equal(me.updatedAt, before, "placing isn't an edit");
+  s().placeArtifact(b, { x: -30, y: 5 });
+  assert.equal(s().artifacts.find((x) => x.id === b)!.x, 0, "never left of the column");
+  s().moveArtifact(b, 1); // already last: the order stays, the spot goes
+  me = s().artifacts.find((x) => x.id === b)!;
+  assert.equal(me.x, undefined);
+  assert.equal(me.y, undefined);
+  assert.deepEqual(artifactsOf(s().artifacts, "c1").map((x) => x.id), [a, b]);
+});
+
 test("deleting a project sends its artifacts' tombstones; finishing it keeps them", () => {
   useSync.setState({ campaigns: [{ id: "c1", name: "P", activityIds: [], tags: [], createdAt: 0 }, { id: "c2", name: "Q", activityIds: [], tags: [], createdAt: 0 }], artifacts: [art("a1", "c1", 0), art("a2", "c1", 1), art("b1", "c2", 0)] });
   let prev = useSync.getState();

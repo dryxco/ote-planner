@@ -102,8 +102,10 @@ export interface SyncState {
   addArtifact(campaignId: string, title?: string): string;
   updateArtifact(id: string, patch: Partial<Pick<Artifact, "title" | "body">>): void;
   deleteArtifact(id: string): void;
-  /** Put an artifact at `index` among its project's (0 = first), and its node `x` px right of the column. */
-  moveArtifact(id: string, index: number, x?: number): void;
+  /** Put an artifact at `index` among its project's (0 = first), back in its project's line on the canvas. */
+  moveArtifact(id: string, index: number): void;
+  /** Leave its node where it was dragged on the canvas (`y` below its project card's top). */
+  placeArtifact(id: string, at: { x: number; y: number }): void;
 
   addGoal(g: Omit<Goal, "id" | "createdAt">): string;
   updateGoal(id: string, patch: Partial<Goal>): void;
@@ -397,19 +399,27 @@ export const useSync = create<SyncState>()(
       deleteArtifact(id) {
         set((s) => ({ artifacts: (s.artifacts ?? []).filter((a) => a.id !== id) }));
       },
-      moveArtifact(id, index, x) {
+      moveArtifact(id, index) {
         const keys = moveKeys(get().artifacts ?? [], id, index);
         const me = (get().artifacts ?? []).find((a) => a.id === id);
-        const nx = x === undefined ? undefined : Math.max(0, Math.round(x));
-        const shift = me !== undefined && nx !== undefined && nx !== (me.x ?? 0);
-        if (!keys.size && !shift) return;
+        const placed = me !== undefined && (me.x !== undefined || me.y !== undefined);
+        if (!keys.size && !placed) return;
         // the place only: a move isn't an edit of the document (its "updated" time stays)
         set((s) => ({
           artifacts: s.artifacts.map((a) => {
             const r = keys.has(a.id) ? { ...a, order: keys.get(a.id)! } : a;
-            return shift && a.id === id ? { ...r, x: nx } : r;
+            if (a.id !== id || !placed) return r;
+            const { x: _x, y: _y, ...inLine } = r; // eslint-disable-line @typescript-eslint/no-unused-vars
+            return inLine;
           }),
         }));
+      },
+      placeArtifact(id, at) {
+        const x = Math.max(0, Math.round(at.x));
+        const y = Math.round(at.y);
+        const me = (get().artifacts ?? []).find((a) => a.id === id);
+        if (!me || (me.x === x && me.y === y)) return;
+        set((s) => ({ artifacts: s.artifacts.map((a) => (a.id === id ? { ...a, x, y } : a)) }));
       },
       addGoal(g) {
         const id = uid();
