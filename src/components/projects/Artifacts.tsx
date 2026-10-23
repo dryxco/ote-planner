@@ -5,7 +5,7 @@ import type { Artifact, Campaign } from "@/lib/types";
 import { useSync } from "@/lib/store";
 import { useUI } from "@/lib/ui";
 import { artifactsOf, docText, editedLabel, stackGroups } from "@/lib/artifacts";
-import { DocIcon, PlusIcon } from "../icons";
+import { DocIcon, FolderIcon, PlusIcon } from "../icons";
 import { cx } from "../ui";
 
 /** Node size and spacing on the canvas. */
@@ -312,6 +312,89 @@ export function ArtifactList({ c, now, open }: { c: Campaign; now: number; open:
         <PlusIcon size={12} />
         Artifact
       </button>
+      )}
+    </div>
+  );
+}
+
+/** "All", the ones on their own (""), or one project's. */
+type Shelf = "all" | string;
+
+/**
+ * Every artifact in one place (the Artifacts button on the Projects tab): newest edits first, each
+ * with its project; filter by project or the ones on their own, and start one that isn't in a project.
+ */
+export function ArtifactGallery({ now }: { now: number }) {
+  const all = useSync((s) => s.artifacts) ?? [];
+  const campaigns = useSync((s) => s.campaigns) ?? [];
+  const openArtifact = useUI((s) => s.openArtifact);
+  const [shelf, setShelf] = useState<Shelf>("all");
+  const nameOf = (id: string) => campaigns.find((c) => c.id === id)?.name;
+  // a project that's gone leaves its id behind: shown as on its own
+  const home = (a: Artifact) => (a.campaignId && nameOf(a.campaignId) ? a.campaignId : "");
+  const shelves: { id: Shelf; name: string; n: number }[] = [
+    { id: "all", name: "All", n: all.length },
+    { id: "", name: "No project", n: all.filter((a) => home(a) === "").length },
+    ...campaigns.map((c) => ({ id: c.id, name: c.name, n: all.filter((a) => home(a) === c.id).length })).filter((x) => x.n > 0),
+  ];
+  const shown = all.filter((a) => shelf === "all" || home(a) === shelf).sort((a, b) => b.updatedAt - a.updatedAt);
+  const create = () => {
+    const id = useSync.getState().addArtifact(shelf === "all" ? "" : shelf);
+    openArtifact(id);
+  };
+  return (
+    <div data-artifact-gallery className="mx-auto max-w-[1100px]">
+      <div className="mb-4 flex items-center gap-2">
+        <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
+          {shelves.map((x) => (
+            <button
+              key={x.id || "none"}
+              data-shelf={x.id || "none"}
+              aria-pressed={shelf === x.id}
+              onClick={() => setShelf(x.id)}
+              className={cx(
+                "flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-[12px]",
+                shelf === x.id ? "border-transparent bg-fg/[0.1] font-medium text-fg" : "border-fg/10 text-fg/60 hover:bg-fg/[0.05]",
+              )}
+            >
+              {x.name}
+              <span className="tabular text-fg/40">{x.n}</span>
+            </button>
+          ))}
+        </div>
+        <button data-new-artifact onClick={create} className="flex shrink-0 items-center gap-1 rounded-full bg-link px-3 py-1 text-[12.5px] font-medium text-white">
+          <PlusIcon size={12} />
+          New artifact
+        </button>
+      </div>
+      {shown.length ? (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
+          {shown.map((a) => {
+            const p = home(a) ? nameOf(home(a)) : null;
+            return (
+              <button
+                key={a.id}
+                data-gallery-item={a.id}
+                onClick={() => openArtifact(a.id)}
+                className="flex h-[132px] flex-col rounded-[12px] border border-fg/10 bg-surface px-3 py-2.5 text-left shadow-[0_1px_2px_rgba(0,0,0,0.12)] hover:border-link/45 focus-visible:border-link focus-visible:outline-none"
+              >
+                <NodeBody a={a} now={now} />
+                <span className={cx("mt-1.5 flex min-w-0 items-center gap-1 text-[11px]", p ? "text-fg/55" : "text-fg/35")}>
+                  {p ? <FolderIcon size={11} className="shrink-0" /> : null}
+                  <span className="truncate">{p ?? "No project"}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-2 py-16 text-center text-[13px] text-fg/45">
+          <DocIcon size={22} className="text-fg/30" />
+          {shelf === "all" ? "No artifacts yet." : "Nothing here."}
+          <button onClick={create} className="text-link">
+            Start one
+          </button>
+        </div>
       )}
     </div>
   );

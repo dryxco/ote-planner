@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Todo } from "@/lib/types";
 import { activityOf, useSync } from "@/lib/store";
@@ -8,14 +8,17 @@ import { useUI } from "@/lib/ui";
 import { useNow } from "@/lib/hooks";
 import { useIsDesktop } from "@/lib/media";
 import { logicalDate } from "@/lib/time";
-import { CheckIcon } from "../icons";
+import { CheckIcon, DocIcon } from "../icons";
 import { TabHeader } from "../period";
 import { cx } from "../ui";
 import { TicketSheet } from "../tickets/TicketSheet";
 import { projectColor, useTicketMeta } from "../tickets/ticket-ui";
 import { ProjectFolders } from "./ProjectFolders";
 import { ProjectSheet } from "./ProjectSheet";
-import { ArtifactCanvas, ArtifactList, addArtifactTo } from "./Artifacts";
+import { ArtifactCanvas, ArtifactGallery, ArtifactList, addArtifactTo } from "./Artifacts";
+
+/** Projects or Artifacts (every artifact in one place), kept for the next visit on this device. */
+const VIEW_KEY = "sync-projects-view";
 
 // the editor (and its library) loads when a document is first opened, not with the tab
 const ArtifactEditor = dynamic(() => import("./ArtifactEditor").then((m) => m.ArtifactEditor), { ssr: false });
@@ -34,6 +37,20 @@ export function ProjectsView() {
   const artifact = useUI((s) => s.artifact);
   const openArtifact = useUI((s) => s.openArtifact);
   const column = useRef<HTMLDivElement>(null);
+  const [gallery, setGallery] = useState(false);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setGallery(localStorage.getItem(VIEW_KEY) === "artifacts");
+    } catch {}
+  }, []);
+  const flipView = () =>
+    setGallery((g) => {
+      try {
+        localStorage.setItem(VIEW_KEY, g ? "projects" : "artifacts");
+      } catch {}
+      return !g;
+    });
   const folders = (
     <ProjectFolders
       date={logicalDate(now, dayStart)}
@@ -50,9 +67,28 @@ export function ProjectsView() {
   );
   return (
     <div className="flex h-full flex-col pt-[max(8px,env(safe-area-inset-top))]">
-      <TabHeader title="Projects" />
+      <TabHeader
+        title={gallery ? "Artifacts" : "Projects"}
+        right={
+          <button
+            data-artifacts-view
+            aria-pressed={gallery}
+            onClick={flipView}
+            title={gallery ? "Back to the projects" : "Every artifact in one place"}
+            className={cx(
+              "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px]",
+              gallery ? "bg-link/[0.14] font-medium text-link" : "text-fg/60 ring-1 ring-fg/15 hover:bg-fg/[0.06] hover:text-fg",
+            )}
+          >
+            <DocIcon size={13} />
+            Artifacts
+          </button>
+        }
+      />
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(var(--tabbar-h)+48px)] pt-2">
-        {desktop ? (
+        {gallery ? (
+          <ArtifactGallery now={now} />
+        ) : desktop ? (
           <div className="flex items-start pl-[clamp(8px,4vw,80px)]">
             <div ref={column} data-projects-column className="w-[clamp(400px,42vw,520px)] shrink-0">
               {folders}

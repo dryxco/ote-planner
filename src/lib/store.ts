@@ -102,6 +102,8 @@ export interface SyncState {
   addArtifact(campaignId: string, title?: string): string;
   updateArtifact(id: string, patch: Partial<Pick<Artifact, "title" | "body">>): void;
   deleteArtifact(id: string): void;
+  /** Move an artifact to another project ("" = none), last among that project's. */
+  moveArtifactTo(id: string, campaignId: string): void;
   /** Put an artifact at `index` among its project's (0 = first), back in its project's line on the canvas. */
   moveArtifact(id: string, index: number): void;
   /** Leave its node where it was dragged on the canvas (`y` below its project card's top). */
@@ -398,6 +400,20 @@ export const useSync = create<SyncState>()(
       },
       deleteArtifact(id) {
         set((s) => ({ artifacts: (s.artifacts ?? []).filter((a) => a.id !== id) }));
+      },
+      moveArtifactTo(id, campaignId) {
+        const all = get().artifacts ?? [];
+        const me = all.find((a) => a.id === id);
+        if (!me || me.campaignId === campaignId) return;
+        const order = nextOrder(all, campaignId);
+        // a move, not an edit (its "updated" time stays); off the old project's canvas spot too
+        set((s) => ({
+          artifacts: s.artifacts.map((a) => {
+            if (a.id !== id) return a;
+            const { x: _x, y: _y, ...rest } = a; // eslint-disable-line @typescript-eslint/no-unused-vars
+            return { ...rest, campaignId, order };
+          }),
+        }));
       },
       moveArtifact(id, index) {
         const keys = moveKeys(get().artifacts ?? [], id, index);

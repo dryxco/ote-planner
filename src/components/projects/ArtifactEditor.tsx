@@ -7,10 +7,10 @@ import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { Image } from "@tiptap/extension-image";
 import { TableKit } from "@tiptap/extension-table";
 import { Placeholder } from "@tiptap/extensions";
-import type { ArtifactDoc } from "@/lib/types";
+import type { ArtifactDoc, Campaign } from "@/lib/types";
 import { useSync } from "@/lib/store";
 import { docImages, docText, withoutInlineImages } from "@/lib/artifacts";
-import { CollapseIcon, ExpandIcon, XIcon } from "../icons";
+import { ChevronUpDown, CollapseIcon, ExpandIcon, XIcon } from "../icons";
 import { cx } from "../ui";
 
 /** Typing pauses this long before the document is written to the store (and synced). */
@@ -53,7 +53,7 @@ function normalizeHref(raw: string): string | null {
  */
 export function ArtifactEditor({ id, onClose }: { id: string; onClose: () => void }) {
   const a = useSync((s) => (s.artifacts ?? []).find((x) => x.id === id));
-  const project = useSync((s) => (s.campaigns ?? []).find((c) => c.id === a?.campaignId)?.name);
+  const campaigns = useSync((s) => s.campaigns) ?? [];
   const { updateArtifact, deleteArtifact } = useSync.getState();
   // the body this editor last loaded or wrote (a store change that differs came from elsewhere)
   const saved = useRef<ArtifactDoc | null>(a?.body ?? null);
@@ -243,7 +243,7 @@ export function ArtifactEditor({ id, onClose }: { id: string; onClose: () => voi
           <button aria-label="Close" onClick={close} className="flex h-[32px] w-[32px] items-center justify-center rounded-full text-fg/60 hover:bg-fg/[0.08] hover:text-fg">
             <XIcon size={16} />
           </button>
-          <span className="min-w-0 truncate text-[12.5px] text-fg/50">{project ?? "Project"}</span>
+          <ProjectPicker value={a.campaignId} campaigns={campaigns} onChange={(c) => useSync.getState().moveArtifactTo(id, c)} />
           <span data-artifact-status className={cx("ml-auto shrink-0 text-[12px] tabular", error ? "text-danger-soft" : "text-fg/40")}>
             {error ?? status}
           </span>
@@ -416,6 +416,27 @@ function Toolbar({ editor, onLink, onImage }: { editor: Editor; onLink: () => vo
         <Glyph d="M5 5h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 16l4.5-4.5 3.5 3.5 2.5-2.5L20 17.5M15.5 9.5h.01" />
       </Tool>
     </div>
+  );
+}
+
+/** The project it's in (or none); pick another to move it there. */
+function ProjectPicker({ value, campaigns, onChange }: { value: string; campaigns: Campaign[]; onChange: (id: string) => void }) {
+  const known = campaigns.some((c) => c.id === value);
+  // finished projects only while it's in one (no moving into a closed project by accident)
+  const list = campaigns.filter((c) => !c.done || c.id === value);
+  return (
+    <label className="relative flex min-w-0 items-center gap-1 rounded-full px-2 py-1 text-[12.5px] text-fg/50 hover:bg-fg/[0.06] hover:text-fg">
+      <span className="min-w-0 truncate">{known ? campaigns.find((c) => c.id === value)!.name : "No project"}</span>
+      <ChevronUpDown size={11} className="shrink-0" />
+      <select data-artifact-project aria-label="Project" value={known ? value : ""} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0">
+        <option value="">No project</option>
+        {list.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

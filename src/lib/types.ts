@@ -143,7 +143,7 @@ export interface Campaign {
  */
 export interface Artifact {
   id: string;
-  /** The project (Campaign) it belongs to. */
+  /** The project (Campaign) it belongs to; "" = on its own (no project). */
   campaignId: string;
   title: string;
   body: ArtifactDoc | null;

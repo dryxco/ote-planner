@@ -113,6 +113,26 @@ test("store: a node placed freely keeps its spot; moved in line (shift-drag) it 
   assert.deepEqual(artifactsOf(s().artifacts, "c1").map((x) => x.id), [a, b]);
 });
 
+test("store: an artifact on its own, moved into a project and out again; deleting a project leaves loose ones", () => {
+  useSync.setState({ artifacts: [], campaigns: [{ id: "c1", name: "P", activityIds: [], tags: [], createdAt: 0 }] });
+  const s = () => useSync.getState();
+  const a = s().addArtifact("c1");
+  const loose = s().addArtifact("");
+  s().placeArtifact(loose, { x: 10, y: 10 });
+  const before = s().artifacts.find((x) => x.id === loose)!.updatedAt;
+  s().moveArtifactTo(loose, "c1");
+  let me = s().artifacts.find((x) => x.id === loose)!;
+  assert.equal(me.campaignId, "c1");
+  assert.deepEqual(artifactsOf(s().artifacts, "c1").map((x) => x.id), [a, loose], "last in the project");
+  assert.equal(me.y, undefined, "in the project's line");
+  assert.equal(me.updatedAt, before, "a move isn't an edit");
+  s().moveArtifactTo(loose, "");
+  me = s().artifacts.find((x) => x.id === loose)!;
+  assert.equal(me.campaignId, "");
+  s().deleteCampaign("c1");
+  assert.deepEqual(s().artifacts.map((x) => x.id), [loose], "the project's go; the loose one stays");
+});
+
 test("deleting a project sends its artifacts' tombstones; finishing it keeps them", () => {
   useSync.setState({ campaigns: [{ id: "c1", name: "P", activityIds: [], tags: [], createdAt: 0 }, { id: "c2", name: "Q", activityIds: [], tags: [], createdAt: 0 }], artifacts: [art("a1", "c1", 0), art("a2", "c1", 1), art("b1", "c2", 0)] });
   let prev = useSync.getState();
