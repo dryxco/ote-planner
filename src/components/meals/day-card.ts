@@ -19,8 +19,8 @@ const H = TOP + TILE_H * 2 + GAP + 110;
 const SLOTS: { kind: MealKind; label: string; color: string }[] = MEAL_KINDS.map((k) => ({ kind: k.id, label: k.ko, color: k.color }));
 /** Warm paper and ink: the photos carry the colour, each meal only a small mark of its own. */
 const PAPER = "#f3efe8";
-const INK = "#24211c";
-const INK_2 = "#6f6a61";
+const INK = "#3a3733";
+const INK_2 = "#77726a";
 const INK_3 = "#a9a398";
 const EMPTY = "#e9e3d9";
 const FONT = `-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif`;

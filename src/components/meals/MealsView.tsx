@@ -121,7 +121,7 @@ export function MealsView() {
           {/* the camera opens straight away on phones; Photos picks one or more (split into meals by time) */}
           <div className="mb-5 grid grid-cols-2 gap-2">
             {!desktop && (
-              <button data-meal-camera onClick={() => camera.current?.click()} className="flex h-[52px] items-center justify-center gap-2 rounded-[14px] bg-fg text-[15px] font-semibold text-bg active:opacity-80">
+              <button data-meal-camera onClick={() => camera.current?.click()} className="flex h-[52px] items-center justify-center gap-2 rounded-[14px] bg-charcoal text-[15px] font-semibold text-on-charcoal active:opacity-80">
                 <CameraGlyph />
                 Take photo
               </button>
@@ -129,7 +129,7 @@ export function MealsView() {
             <button
               data-meal-album
               onClick={() => album.current?.click()}
-              className={cx("flex h-[52px] items-center justify-center gap-2 rounded-[14px] text-[15px] font-medium", desktop ? "col-span-2 bg-fg text-bg hover:opacity-90" : "bg-surface text-fg ring-1 ring-fg/10")}
+              className={cx("flex h-[52px] items-center justify-center gap-2 rounded-[14px] text-[15px] font-medium", desktop ? "col-span-2 bg-charcoal text-on-charcoal hover:opacity-90" : "bg-surface text-fg ring-1 ring-fg/10")}
             >
               <PhotosGlyph />
               {desktop ? "Add meal photos" : "From Photos"}
@@ -378,7 +378,7 @@ function ShareSheet({ date, meals, onClose }: { date: number; meals: Meal[]; onC
               if (canShare) navigator.share({ files: [file] }).catch(() => {});
               else save();
             }}
-            className="h-[46px] rounded-[12px] bg-fg text-[15px] font-semibold text-bg disabled:opacity-40"
+            className="h-[46px] rounded-[12px] bg-charcoal text-[15px] font-semibold text-on-charcoal disabled:opacity-40"
           >
             {canShare ? "Share…" : "Download"}
           </button>

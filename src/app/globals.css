@@ -35,6 +35,9 @@
   --now-soft: rgba(243, 154, 60, 0.16);
   --ring-track: rgba(255, 255, 255, 0.08); /* summary rings */
   --nav: rgba(16, 16, 18, 0.92); /* docked tab bar */
+  /* the Meals tab's main buttons: soft charcoal, not pure black / white */
+  --charcoal: #d6d6db;
+  --on-charcoal: #1c1c1e;
   color-scheme: dark;
 }
 
@@ -68,6 +71,8 @@
   --now-soft: rgba(210, 103, 15, 0.12);
   --ring-track: rgba(0, 0, 0, 0.07);
   --nav: rgba(245, 245, 245, 0.94);
+  --charcoal: #48484d;
+  --on-charcoal: #ffffff;
   color-scheme: light;
 }
 
@@ -82,6 +87,8 @@
   --color-seg-active: var(--seg-active);
   --color-toggle-off: var(--toggle-off);
   --color-link: var(--link);
+  --color-charcoal: var(--charcoal);
+  --color-on-charcoal: var(--on-charcoal);
   --color-danger-soft: var(--danger-soft);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
