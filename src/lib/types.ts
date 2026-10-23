@@ -315,6 +315,8 @@ export interface Ticket {
   note?: string;
   /** The project (campaign) it belongs to — kept in Ote only, never sent to a connector. */
   campaignId?: string;
+  /** A sub-item of this task (dropped onto it in a project folder) — kept in Ote only, never sent to a connector. */
+  parentTodoId?: string;
   order?: number;
   updatedAt?: number;
 }

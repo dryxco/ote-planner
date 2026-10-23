@@ -259,8 +259,14 @@ function Folder({
   const split = openAndDone(items.todos, showTask);
   const openTodos = withBranchesUnderMain(split.open.sort((a, b) => (a.date ?? Infinity) - (b.date ?? Infinity) || byKey(a, b)));
   const doneTodos = withBranchesUnderMain(split.done.sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0)));
-  const openTickets = items.tickets.filter((t) => t.statusGroup !== "complete").sort((a, b) => b.createdAt - a.createdAt);
-  const doneTickets = items.tickets.filter((t) => t.statusGroup === "complete");
+  // tickets dropped onto a task sit under it (wherever it is listed); the rest stand on their own
+  const kids = ticketsUnderTasks(items.tickets, items.todos);
+  const loose = items.tickets.filter((t) => !kids.nested.has(t.id));
+  const openTickets = loose.filter((t) => t.statusGroup !== "complete").sort((a, b) => b.createdAt - a.createdAt);
+  const doneTickets = loose.filter((t) => t.statusGroup === "complete");
+  const task = (t: Todo) => (
+    <TaskWithTickets key={t.id} t={t} kids={kids.byTask.get(t.id) ?? []} onTicket={(id) => updateTicket(id, { campaignId: c.id, parentTodoId: t.id })} onOver={() => setOver(false)} onOpenTicket={onOpenTicket} render={renderTask} />
+  );
   const doneCount = doneTodos.length + doneTickets.length;
 
   return (
@@ -284,7 +290,8 @@ function Folder({
         if (!ticket && !todo) return;
         e.preventDefault();
         e.stopPropagation();
-        if (ticket) updateTicket(ticket, { campaignId: c.id });
+        // into the folder itself: a ticket under a task comes out from under it
+        if (ticket) updateTicket(ticket, { campaignId: c.id, parentTodoId: undefined });
         else if (todo) updateTodo(todo, { campaignId: c.id });
       }}
       className={cx(
@@ -405,7 +412,7 @@ function Folder({
               />
             </div>
           )}
-          {openTodos.map(renderTask)}
+          {openTodos.map(task)}
           {openTickets.map((t) => (
             <TicketItem key={t.id} t={t} onOpen={() => onOpenTicket(t.id)} />
           ))}
@@ -417,7 +424,7 @@ function Folder({
               </button>
               {showDone && (
                 <>
-                  {doneTodos.map(renderTask)}
+                  {doneTodos.map(task)}
                   {doneTickets.map((t) => (
                     <TicketItem key={t.id} t={t} onOpen={() => onOpenTicket(t.id)} />
                   ))}
@@ -428,6 +435,80 @@ function Folder({
         </div>
       )}
     </section>
+  );
+}
+
+/** Which tickets sit under which task (open first, then done; newest first), and the ids of those that do. */
+export function ticketsUnderTasks(tickets: Ticket[], todos: Todo[]): { byTask: Map<string, Ticket[]>; nested: Set<string> } {
+  const ids = new Set(todos.filter((t) => !t.done).map((t) => t.id));
+  const doneIds = new Set(todos.filter((t) => t.done).map((t) => t.id));
+  const byTask = new Map<string, Ticket[]>();
+  const nested = new Set<string>();
+  for (const k of tickets) {
+    if (!k.parentTodoId) continue;
+    // its task is gone or elsewhere: on its own; a done task keeps only done tickets (open work stays in sight)
+    if (!ids.has(k.parentTodoId) && !(doneIds.has(k.parentTodoId) && k.statusGroup === "complete")) continue;
+    nested.add(k.id);
+    byTask.set(k.parentTodoId, [...(byTask.get(k.parentTodoId) ?? []), k]);
+  }
+  const done = (k: Ticket) => (k.statusGroup === "complete" ? 1 : 0);
+  for (const list of byTask.values()) list.sort((a, b) => done(a) - done(b) || b.createdAt - a.createdAt);
+  return { byTask, nested };
+}
+
+/** A task in a folder, with the tickets under it; drop a ticket on the task to put it there. */
+function TaskWithTickets({
+  t,
+  kids,
+  onTicket,
+  onOver,
+  onOpenTicket,
+  render,
+}: {
+  t: Todo;
+  kids: Ticket[];
+  onTicket: (id: string) => void;
+  onOver: () => void;
+  onOpenTicket: (id: string) => void;
+  render: (t: Todo) => ReactNode;
+}) {
+  const [hot, setHot] = useState(false);
+  return (
+    <div data-task-drop={t.id} className="flex flex-col gap-2">
+      <div
+        className={cx("rounded-[12px]", hot && "outline outline-2 outline-link/70")}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes(TICKET_DRAG_TYPE)) return;
+          e.preventDefault();
+          e.stopPropagation();
+          e.dataTransfer.dropEffect = "move";
+          setHot(true);
+          onOver();
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) setHot(false);
+        }}
+        onDrop={(e) => {
+          const id = e.dataTransfer.getData(TICKET_DRAG_TYPE);
+          setHot(false);
+          if (!id) return;
+          e.preventDefault();
+          e.stopPropagation();
+          onTicket(id);
+        }}
+      >
+        {render(t)}
+      </div>
+      {kids.length > 0 && (
+        <div data-sub-tickets={t.id} className="relative flex flex-col gap-2 pl-7">
+          {/* the line down from the task to what's under it */}
+          <span aria-hidden className="absolute bottom-4 left-[17px] top-0 w-px bg-fg/15" />
+          {kids.map((k) => (
+            <TicketItem key={k.id} t={k} onOpen={() => onOpenTicket(k.id)} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -4,7 +4,8 @@ import { mkdtempSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { StaleError, type RemoteTicket, type TicketSource } from "./connectors/types";
-import { goesToSource, mergeTicket, type TicketNorm } from "./ticket-sync";
+import { goesToSource, mergeTicket, remoteToTicket, type TicketNorm } from "./ticket-sync";
+import type { Ticket } from "../types";
 
 before(() => {
   process.env.OTE_DATA_DIR = mkdtempSync(path.join(os.tmpdir(), "ticket-sync-"));
@@ -95,4 +96,12 @@ test("end to end: filed once, pulled, merged, and a stale write waits for the ne
   rows.delete("r9");
   sum = await syncTickets(owner, src);
   assert.equal(sum.removed, 1);
+});
+
+test("a ticket pulled from the source keeps Ote's own project and parent task", () => {
+  const mine = { id: "k1", projectId: "p1", title: "Old", status: "Not started", createdAt: 1, campaignId: "c1", parentTodoId: "td1" } as Ticket;
+  const t = remoteToTicket(mine, "k1", { id: "r1", projectId: "p1", title: "New", status: "In progress", statusGroup: "in_progress" } as never, "P");
+  assert.equal(t.title, "New");
+  assert.equal(t.campaignId, "c1");
+  assert.equal(t.parentTodoId, "td1");
 });
