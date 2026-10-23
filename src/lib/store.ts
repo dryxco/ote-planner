@@ -102,8 +102,8 @@ export interface SyncState {
   addArtifact(campaignId: string, title?: string): string;
   updateArtifact(id: string, patch: Partial<Pick<Artifact, "title" | "body">>): void;
   deleteArtifact(id: string): void;
-  /** Put an artifact at `index` among its project's (0 = first). */
-  moveArtifact(id: string, index: number): void;
+  /** Put an artifact at `index` among its project's (0 = first), and its node `x` px right of the column. */
+  moveArtifact(id: string, index: number, x?: number): void;
 
   addGoal(g: Omit<Goal, "id" | "createdAt">): string;
   updateGoal(id: string, patch: Partial<Goal>): void;
@@ -397,11 +397,19 @@ export const useSync = create<SyncState>()(
       deleteArtifact(id) {
         set((s) => ({ artifacts: (s.artifacts ?? []).filter((a) => a.id !== id) }));
       },
-      moveArtifact(id, index) {
+      moveArtifact(id, index, x) {
         const keys = moveKeys(get().artifacts ?? [], id, index);
-        if (!keys.size) return;
-        // the order only: a move isn't an edit of the document (its "updated" time stays)
-        set((s) => ({ artifacts: s.artifacts.map((a) => (keys.has(a.id) ? { ...a, order: keys.get(a.id)! } : a)) }));
+        const me = (get().artifacts ?? []).find((a) => a.id === id);
+        const nx = x === undefined ? undefined : Math.max(0, Math.round(x));
+        const shift = me !== undefined && nx !== undefined && nx !== (me.x ?? 0);
+        if (!keys.size && !shift) return;
+        // the place only: a move isn't an edit of the document (its "updated" time stays)
+        set((s) => ({
+          artifacts: s.artifacts.map((a) => {
+            const r = keys.has(a.id) ? { ...a, order: keys.get(a.id)! } : a;
+            return shift && a.id === id ? { ...r, x: nx } : r;
+          }),
+        }));
       },
       addGoal(g) {
         const id = uid();

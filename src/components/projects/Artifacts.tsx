@@ -20,6 +20,8 @@ const NODE_X = 88;
 const GROUP_GAP = 22;
 /** The port sits on the card's first line (its name). */
 const PORT_Y = 20;
+/** ⌥← / ⌥→ moves a node this far. */
+const NUDGE = 24;
 
 /** A new artifact in the project, opened in the editor. */
 export function addArtifactTo(campaignId: string) {
@@ -28,12 +30,13 @@ export function addArtifactTo(campaignId: string) {
 }
 
 type Card = { id: string; top: number; done: boolean };
-type Drag = { id: string; from: number; dy: number };
+type Drag = { id: string; from: number; dx: number; dy: number };
 
 /**
  * Computers: the space right of the project folders. Each project's artifacts are nodes next to it,
  * joined to a port on the card's right edge by curves (like a node editor). A project whose nodes run
- * past the next project pushes that one's nodes down. Drag a node up or down to reorder.
+ * past the next project pushes that one's nodes down. Drag a node up or down to reorder, left or right
+ * to place it (its curve follows).
  */
 export function ArtifactCanvas({ column, now }: { column: RefObject<HTMLElement | null>; now: number }) {
   const all = useSync((s) => s.artifacts) ?? [];
@@ -88,20 +91,24 @@ export function ArtifactCanvas({ column, now }: { column: RefObject<HTMLElement 
   const groups = withItems.map((c, i) => ({ ...c, top: stack.tops[i], port: c.top + PORT_Y }));
   const height = Math.max(colH, stack.bottom);
   const nodeW = Math.max(200, Math.min(NODE_W, width - NODE_X - 16));
+  // how far right a node can sit (the canvas's width, whatever the window)
+  const maxX = Math.max(0, width - NODE_X - nodeW - 16);
+  const xOf = (a: Artifact) => Math.min(maxX, a.x ?? 0) + (drag?.id === a.id ? drag.dx : 0);
 
   return (
     <div ref={ref} data-artifact-canvas className="relative min-w-0 flex-1" style={{ height }}>
-      <svg className="pointer-events-none absolute left-0 top-0 overflow-visible" width={NODE_X} height={height} aria-hidden>
+      <svg className="pointer-events-none absolute left-0 top-0 overflow-visible" width={Math.max(NODE_X, width)} height={height} aria-hidden>
         {groups.flatMap((g) =>
           g.items.map((a, i) => {
             const y0 = g.port;
             const y1 = g.top + i * STEP + NODE_H / 2 + (drag?.id === a.id ? drag.dy : 0);
-            const k = NODE_X * 0.55;
+            const x1 = NODE_X + xOf(a);
+            const k = x1 * 0.55;
             return (
               <path
                 key={a.id}
                 data-curve={a.id}
-                d={`M0 ${y0} C ${k} ${y0}, ${NODE_X - k} ${y1}, ${NODE_X} ${y1}`}
+                d={`M0 ${y0} C ${k} ${y0}, ${x1 - k} ${y1}, ${x1} ${y1}`}
                 fill="none"
                 strokeWidth={hot === a.id || drag?.id === a.id ? 2 : 1.5}
                 style={{ stroke: hot === a.id || drag?.id === a.id ? "var(--link)" : "color-mix(in srgb, var(--fg) 22%, transparent)" }}
@@ -115,7 +122,7 @@ export function ArtifactCanvas({ column, now }: { column: RefObject<HTMLElement 
         <Port key={g.id} y={g.port} linked={g.items.length > 0} onAdd={() => addArtifactTo(g.id)} />
       ))}
       {groups.map((g) => (
-        <Group key={g.id} top={g.top} items={g.items} done={g.done} now={now} onOpen={openArtifact} onHot={setHot} nodeW={nodeW} drag={drag && g.items.some((a) => a.id === drag.id) ? drag : null} onDrag={setDrag} />
+        <Group key={g.id} top={g.top} items={g.items} done={g.done} now={now} onOpen={openArtifact} onHot={setHot} nodeW={nodeW} maxX={maxX} xOf={xOf} drag={drag && g.items.some((a) => a.id === drag.id) ? drag : null} onDrag={setDrag} />
       ))}
     </div>
   );
@@ -144,7 +151,7 @@ function Port({ y, linked, onAdd }: { y: number; linked: boolean; onAdd: () => v
   );
 }
 
-/** One project's nodes, reordered by dragging (a straight line marks where it will go). */
+/** One project's nodes, reordered and placed by dragging (a straight line marks where it will go). */
 function Group({
   top,
   items,
@@ -153,10 +160,14 @@ function Group({
   onOpen,
   onHot,
   nodeW,
+  maxX,
+  xOf,
   drag,
   onDrag: setDrag,
 }: {
   nodeW: number;
+  maxX: number;
+  xOf: (a: Artifact) => number;
   top: number;
   items: Artifact[];
   done: boolean;
@@ -174,15 +185,20 @@ function Group({
 
   const start = (e: React.PointerEvent, a: Artifact, from: number) => {
     if (e.button !== 0) return;
+    const x0 = e.clientX;
     const y0 = e.clientY;
+    const left = Math.min(maxX, a.x ?? 0);
+    // the sideways shift, kept inside the canvas
+    const dxOf = (ev: PointerEvent) => Math.max(0, Math.min(maxX, left + ev.clientX - x0)) - left;
     let moving = false;
     dragged.current = false;
     const move = (ev: PointerEvent) => {
+      const dx = ev.clientX - x0;
       const dy = ev.clientY - y0;
-      if (!moving && Math.abs(dy) < 4) return;
+      if (!moving && Math.hypot(dx, dy) < 4) return;
       moving = true;
       dragged.current = true;
-      setDrag({ id: a.id, from, dy });
+      setDrag({ id: a.id, from, dx: dxOf(ev), dy });
     };
     const up = (ev: PointerEvent) => {
       window.removeEventListener("pointermove", move);
@@ -190,7 +206,7 @@ function Group({
       window.removeEventListener("pointercancel", up);
       if (!moving) return;
       const to = Math.max(0, Math.min(items.length - 1, Math.round((from * STEP + ev.clientY - y0) / STEP)));
-      if (ev.type === "pointerup" && to !== from) moveArtifact(a.id, to);
+      if (ev.type === "pointerup") moveArtifact(a.id, to, left + dxOf(ev));
       setDrag(null);
     };
     window.addEventListener("pointermove", move);
@@ -212,18 +228,20 @@ function Group({
               else onOpen(a.id);
             }}
             onKeyDown={(e) => {
-              // ⌥↑ / ⌥↓ move it without a mouse
-              if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+              // ⌥↑ / ⌥↓ / ⌥← / ⌥→ move it without a mouse
+              if (!e.altKey || !e.key.startsWith("Arrow")) return;
               e.preventDefault();
-              moveArtifact(a.id, i + (e.key === "ArrowUp" ? -1 : 1));
+              const left = Math.min(maxX, a.x ?? 0);
+              if (e.key === "ArrowUp" || e.key === "ArrowDown") moveArtifact(a.id, i + (e.key === "ArrowUp" ? -1 : 1));
+              else moveArtifact(a.id, i, Math.max(0, Math.min(maxX, left + (e.key === "ArrowLeft" ? -NUDGE : NUDGE))));
             }}
             onMouseEnter={() => onHot(a.id)}
             onMouseLeave={() => onHot(null)}
             onFocus={() => onHot(a.id)}
             onBlur={() => onHot(null)}
-            style={{ top: i * STEP + (lifted ? drag.dy : 0), width: nodeW, height: NODE_H }}
+            style={{ top: i * STEP + (lifted ? drag.dy : 0), left: xOf(a), width: nodeW, height: NODE_H }}
             className={cx(
-              "absolute left-0 flex touch-none select-none flex-col rounded-[12px] border border-fg/10 bg-surface px-3 py-2.5 text-left shadow-[0_1px_2px_rgba(0,0,0,0.12)] hover:border-link/45 focus-visible:border-link focus-visible:outline-none",
+              "absolute flex touch-none select-none flex-col rounded-[12px] border border-fg/10 bg-surface px-3 py-2.5 text-left shadow-[0_1px_2px_rgba(0,0,0,0.12)] hover:border-link/45 focus-visible:border-link focus-visible:outline-none",
               lifted ? "z-20 cursor-grabbing border-link/60 shadow-[0_10px_30px_rgba(0,0,0,0.28)]" : "transition-[border-color,box-shadow]",
               done && !lifted && "opacity-60",
             )}
@@ -234,7 +252,7 @@ function Group({
           </button>
         );
       })}
-      {lineY !== null && <div data-drop-line className="pointer-events-none absolute left-0 z-30 h-[2px] rounded-none bg-link" style={{ top: lineY - 1, width: nodeW }} />}
+      {lineY !== null && drag && <div data-drop-line className="pointer-events-none absolute z-30 h-[2px] rounded-none bg-link" style={{ top: lineY - 1, left: xOf(items[drag.from]), width: nodeW }} />}
     </div>
   );
 }

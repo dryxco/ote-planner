@@ -141,6 +141,45 @@ try {
   assert.equal(await page.locator("[data-artifact-editor]").count(), 0, "a drag doesn't open it");
   console.log("ok - drag reorders nodes (a straight 2px drop line)");
 
+  // drag a node sideways: it stays there (order unchanged), its curve runs to it, a reload keeps it
+  const brief = await page.locator('[data-artifact-node="a-brief"]').boundingBox();
+  await page.mouse.move(brief.x + 60, brief.y + 40);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) await page.mouse.move(brief.x + 60 + i * 20, brief.y + 40);
+  await page.mouse.up();
+  await page.waitForTimeout(200);
+  const moved = await page.locator('[data-artifact-node="a-brief"]').boundingBox();
+  assert.ok(Math.abs(moved.x - brief.x - 160) <= 2 && Math.abs(moved.y - brief.y) <= 1, `moved 160px right (${moved.x - brief.x})`);
+  st = await store(page);
+  assert.equal(st.artifacts.find((a) => a.id === "a-brief").x, 160, "x kept");
+  assert.deepEqual(st.artifacts.filter((a) => a.campaignId === "c-launch").sort((a, b) => a.order - b.order).map((a) => a.id), order, "order unchanged");
+  const curveEnd = await page.locator('[data-curve="a-brief"]').evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return r.right;
+  });
+  assert.ok(Math.abs(curveEnd - moved.x) <= 2, "the curve reaches the node");
+  assert.equal(await page.locator("[data-artifact-editor]").count(), 0, "a sideways drag doesn't open it");
+  // dragged far right: it stops at the canvas's edge
+  await page.mouse.move(moved.x + 60, moved.y + 40);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) await page.mouse.move(moved.x + 60 + i * 300, moved.y + 40);
+  await page.mouse.up();
+  const edge = await page.locator('[data-artifact-node="a-brief"]').boundingBox();
+  assert.ok(edge.x + edge.width <= 1440 && edge.x > moved.x, "kept inside the window");
+  await page.screenshot({ path: `${shots}/desktop-dark-node-moved.png` });
+  // ⌥← nudges it back
+  await page.locator('[data-artifact-node="a-brief"]').focus();
+  await page.keyboard.press("Alt+ArrowLeft");
+  await page.waitForTimeout(100);
+  const nudged = await page.locator('[data-artifact-node="a-brief"]').boundingBox();
+  assert.ok(Math.abs(edge.x - nudged.x - 24) <= 1, "⌥← moves it 24px left");
+  await page.reload();
+  await page.locator('[data-artifact-node="a-brief"]').waitFor();
+  await page.waitForTimeout(300);
+  const reloaded = await page.locator('[data-artifact-node="a-brief"]').boundingBox();
+  assert.ok(Math.abs(reloaded.x - nudged.x) <= 1, "a reload keeps its place");
+  console.log("ok - nodes move left and right too, inside the canvas, and stay there");
+
   // a new artifact from the port of an empty project; the editor opens on its title
   const healthPort = await page.locator('[data-project="c-health"]').evaluate((el) => {
     const r = el.getBoundingClientRect();

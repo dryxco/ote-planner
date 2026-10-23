@@ -149,6 +149,8 @@ export interface Artifact {
   body: ArtifactDoc | null;
   /** Place among its project's artifacts (smaller first). */
   order: number;
+  /** How far right of its column its node sits on the canvas (px); missing = in line. */
+  x?: number;
   createdAt: number;
   updatedAt: number;
 }
