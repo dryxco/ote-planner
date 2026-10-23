@@ -1,12 +1,14 @@
 import type { Meal, MealKind } from "./types";
 import { logicalDate } from "./time";
 
-export const MEAL_KINDS: { id: MealKind; label: string }[] = [
-  { id: "breakfast", label: "Breakfast" },
-  { id: "lunch", label: "Lunch" },
-  { id: "dinner", label: "Dinner" },
-  { id: "snack", label: "Snack" },
+/** Each meal's own quiet colour (muted, so photos stay the loudest thing): ochre, sage, slate, dusty rose. */
+export const MEAL_KINDS: { id: MealKind; label: string; ko: string; color: string }[] = [
+  { id: "breakfast", label: "Breakfast", ko: "아침", color: "#c9973b" },
+  { id: "lunch", label: "Lunch", ko: "점심", color: "#6f8f62" },
+  { id: "dinner", label: "Dinner", ko: "저녁", color: "#5a6a8a" },
+  { id: "snack", label: "Snack", ko: "간식", color: "#b07070" },
 ];
+export const kindColor = (k: MealKind) => MEAL_KINDS.find((x) => x.id === k)?.color ?? "#888888";
 
 /** The meal a time of day most likely is: breakfast 5–10:30, lunch –15:00, snack –17:00, dinner –21:30, else a snack. */
 export function kindAt(t: number): MealKind {

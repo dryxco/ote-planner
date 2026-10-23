@@ -6,7 +6,7 @@ import { useSync } from "@/lib/store";
 import { useNow } from "@/lib/hooks";
 import { useIsDesktop } from "@/lib/media";
 import { WEEKDAY_SHORT, addDays, logicalDate, pad2 } from "@/lib/time";
-import { MEAL_KINDS, dayKcal, groupByTime, kindAt, mealKcal, mealsOn, timeOn } from "@/lib/meals";
+import { MEAL_KINDS, dayKcal, groupByTime, kindAt, kindColor, mealKcal, mealsOn, timeOn } from "@/lib/meals";
 import { readPhotos, uploadPhoto } from "@/lib/meal-photos";
 import { ChevronLeft, ChevronRight, PlusIcon, XIcon } from "../icons";
 import { TabHeader } from "../period";
@@ -121,7 +121,7 @@ export function MealsView() {
           {/* the camera opens straight away on phones; Photos picks one or more (split into meals by time) */}
           <div className="mb-5 grid grid-cols-2 gap-2">
             {!desktop && (
-              <button data-meal-camera onClick={() => camera.current?.click()} className="flex h-[52px] items-center justify-center gap-2 rounded-[14px] bg-link text-[15px] font-semibold text-white">
+              <button data-meal-camera onClick={() => camera.current?.click()} className="flex h-[52px] items-center justify-center gap-2 rounded-[14px] bg-fg text-[15px] font-semibold text-bg active:opacity-80">
                 <CameraGlyph />
                 Take photo
               </button>
@@ -129,7 +129,7 @@ export function MealsView() {
             <button
               data-meal-album
               onClick={() => album.current?.click()}
-              className={cx("flex h-[52px] items-center justify-center gap-2 rounded-[14px] text-[15px] font-medium", desktop ? "col-span-2 bg-link text-white" : "bg-surface text-fg ring-1 ring-fg/10")}
+              className={cx("flex h-[52px] items-center justify-center gap-2 rounded-[14px] text-[15px] font-medium", desktop ? "col-span-2 bg-fg text-bg hover:opacity-90" : "bg-surface text-fg ring-1 ring-fg/10")}
             >
               <PhotosGlyph />
               {desktop ? "Add meal photos" : "From Photos"}
@@ -160,14 +160,16 @@ function MealCard({ m, date }: { m: Meal; date: number }) {
   const t = new Date(m.at);
   const setDishes = (dishes: Meal["dishes"]) => updateMeal(m.id, { dishes });
   return (
-    <section data-meal={m.id} className="rounded-[16px] bg-surface p-3 ring-1 ring-fg/[0.06]">
+    <section data-meal={m.id} className="relative overflow-hidden rounded-[16px] bg-surface p-3 pl-4 ring-1 ring-fg/[0.06]">
+      <span aria-hidden className="absolute inset-y-0 left-0 w-[3px]" style={{ background: kindColor(m.kind) }} />
       <div className="mb-2.5 flex items-center gap-2">
         <select
           data-meal-kind
           aria-label="Meal"
           value={m.kind}
           onChange={(e) => updateMeal(m.id, { kind: e.target.value as MealKind })}
-          className="rounded-full bg-fg/[0.07] px-2.5 py-1 text-[13px] font-semibold outline-none"
+          style={{ color: kindColor(m.kind), background: `color-mix(in srgb, ${kindColor(m.kind)} 14%, transparent)` }}
+          className="appearance-none rounded-full px-3 py-1 text-[13px] font-semibold outline-none"
         >
           {MEAL_KINDS.map((k) => (
             <option key={k.id} value={k.id}>
@@ -188,7 +190,7 @@ function MealCard({ m, date }: { m: Meal; date: number }) {
           }}
           className="bg-transparent text-[13px] text-fg/55 outline-none tabular"
         />
-        <span data-meal-kcal className="ml-auto text-[13px] font-medium text-fg/70 tabular">
+        <span data-meal-kcal className="ml-auto text-[13px] font-semibold text-fg/80 tabular">
           {kcal !== null ? `${kcal.toLocaleString()} kcal` : ""}
         </span>
         {armed ? (
@@ -262,7 +264,7 @@ function MealCard({ m, date }: { m: Meal; date: number }) {
             ))}
           </ul>
           <div className="mt-1.5 flex items-center gap-3 px-1">
-            <button data-add-dish onClick={() => setDishes([...m.dishes, { name: "New dish", kcal: null }])} className="text-[12.5px] text-link">
+            <button data-add-dish onClick={() => setDishes([...m.dishes, { name: "New dish", kcal: null }])} className="text-[12.5px] font-medium text-fg/65 hover:text-fg">
               + Dish
             </button>
             {m.photos.length > 0 && (
@@ -376,7 +378,7 @@ function ShareSheet({ date, meals, onClose }: { date: number; meals: Meal[]; onC
               if (canShare) navigator.share({ files: [file] }).catch(() => {});
               else save();
             }}
-            className="h-[46px] rounded-[12px] bg-link text-[15px] font-semibold text-white disabled:opacity-40"
+            className="h-[46px] rounded-[12px] bg-fg text-[15px] font-semibold text-bg disabled:opacity-40"
           >
             {canShare ? "Share…" : "Download"}
           </button>
