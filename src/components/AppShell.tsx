@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { UndoKeys } from "./UndoKeys";
-import { DiaryIcon, HomeIcon, InsightsIcon, PlannerIcon, ReviewIcon, StackIcon, SwatchIcon, TargetIcon, TodayIcon } from "./icons";
+import { BowlIcon, DiaryIcon, HomeIcon, InsightsIcon, PlannerIcon, ReviewIcon, StackIcon, SwatchIcon, TargetIcon, TodayIcon } from "./icons";
 import { cx } from "./ui";
 import { useHydrated, useNow } from "@/lib/hooks";
 import { logicalDate } from "@/lib/time";
@@ -23,6 +23,7 @@ const DESKTOP_TABS = [
   { href: "/calendar", label: "Calendar", Icon: PlannerIcon },
   { href: "/projects", label: "Projects", Icon: StackIcon },
   { href: "/diary", label: "Diary", Icon: DiaryIcon },
+  { href: "/meals", label: "Meals", Icon: BowlIcon },
 ];
 
 /** Looking back rather than planning ahead: one "Insights" entry on phones, a group on the rail. */
@@ -37,6 +38,7 @@ const TABS = [
   { href: "/calendar", label: "Calendar", Icon: PlannerIcon },
   { href: "/projects", label: "Projects", Icon: StackIcon },
   { href: "/diary", label: "Diary", Icon: DiaryIcon },
+  { href: "/meals", label: "Meals", Icon: BowlIcon },
 ];
 
 const isActive = (pathname: string, href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));

@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { Activity, Actual, Artifact, Campaign, DiaryEntry, Goal, Plan, Settings, Ticket, Timer, Todo } from "./types";
+import type { Activity, Actual, Artifact, Campaign, DiaryEntry, Goal, Meal, Plan, Settings, Ticket, Timer, Todo } from "./types";
 import { parseOccurrenceKey } from "./plans";
 import { moveKeys, nextOrder } from "./artifacts";
 import { MIN, logicalDate, startOfDay } from "./time";
@@ -54,6 +54,8 @@ export interface SyncState {
   campaigns: Campaign[];
   /** Documents linked to projects (see `Artifact`). */
   artifacts: Artifact[];
+  /** Meals logged with photos (the Meals tab). */
+  meals: Meal[];
   timer: Timer | null;
   settings: Settings;
 
@@ -102,6 +104,9 @@ export interface SyncState {
   addArtifact(campaignId: string, title?: string): string;
   updateArtifact(id: string, patch: Partial<Pick<Artifact, "title" | "body">>): void;
   deleteArtifact(id: string): void;
+  addMeal(m: Omit<Meal, "id" | "createdAt" | "updatedAt">): string;
+  updateMeal(id: string, patch: Partial<Omit<Meal, "id" | "createdAt">>): void;
+  deleteMeal(id: string): void;
   /** Move an artifact to another project ("" = none), last among that project's. */
   moveArtifactTo(id: string, campaignId: string): void;
   /** Put an artifact at `index` among its project's (0 = first), back in its project's line on the canvas. */
@@ -144,6 +149,7 @@ export const useSync = create<SyncState>()(
       tickets: [],
       campaigns: [],
       artifacts: [],
+      meals: [],
       timer: null,
       settings: DEFAULT_SETTINGS,
 
@@ -400,6 +406,19 @@ export const useSync = create<SyncState>()(
       },
       deleteArtifact(id) {
         set((s) => ({ artifacts: (s.artifacts ?? []).filter((a) => a.id !== id) }));
+      },
+      addMeal(m) {
+        const id = uid();
+        const now = Date.now();
+        set((s) => ({ meals: [...(s.meals ?? []), { ...m, id, createdAt: now, updatedAt: now }] }));
+        return id;
+      },
+      updateMeal(id, patch) {
+        if (!(get().meals ?? []).some((m) => m.id === id)) return; // deleted meanwhile (a late reading)
+        set((s) => ({ meals: s.meals.map((m) => (m.id === id ? { ...m, ...patch, updatedAt: Date.now() } : m)) }));
+      },
+      deleteMeal(id) {
+        set((s) => ({ meals: (s.meals ?? []).filter((m) => m.id !== id) }));
       },
       moveArtifactTo(id, campaignId) {
         const all = get().artifacts ?? [];

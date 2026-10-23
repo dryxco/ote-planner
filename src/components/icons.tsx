@@ -224,6 +224,14 @@ export function XIcon({ size, ...p }: P) {
   );
 }
 
+export function BowlIcon({ size, ...p }: P) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M3.5 11.5h17a8.5 8.5 0 0 1-17 0zM9 20h6M8.5 8.5c0-1.5 1-1.5 1-3M12.5 8.5c0-1.5 1-1.5 1-3" />
+    </svg>
+  );
+}
+
 export function ExpandIcon({ size, ...p }: P) {
   return (
     <svg {...base(size)} {...p}>

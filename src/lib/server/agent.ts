@@ -5,7 +5,7 @@ import path from "node:path";
 import { dataDir } from "./store";
 
 /**
- * Chat agent backed by this Mac's Claude Code login (`claude -p`, headless). It gets no tools at
+ * Chat agent backed by this computer's Claude Code login (`claude -p`, headless). It gets no tools at
  * all — it can only answer with a reply and a list of operations, which the browser validates and
  * applies (and can undo). One request at a time per server.
  */
@@ -74,55 +74,64 @@ export async function runAgent(history: AgentTurn[], context: unknown, images: A
         ],
       },
     });
-    const out = await run(
-      claudeBin(),
-      [
-        "-p",
-        "--input-format", "stream-json",
-        "--output-format", "stream-json",
-        "--verbose",
-        "--json-schema", SCHEMA,
-        "--system-prompt", SYSTEM,
-        "--tools", "",
-        "--setting-sources", "",
-        "--strict-mcp-config",
-        "--disable-slash-commands",
-        "--no-session-persistence",
-        "--model", process.env.OTE_AGENT_MODEL ?? "sonnet",
-      ],
-      input + "\n",
-      cwd,
-    );
-    const last = out
-      .split("\n")
-      .map((l) => {
-        try {
-          return JSON.parse(l) as { type?: string };
-        } catch {
-          return null;
-        }
-      })
-      .filter((x) => x?.type === "result")
-      .at(-1);
-    if (!last) throw new Error("No answer from the agent");
-    const res = last as { is_error?: boolean; result?: string; structured_output?: AgentResult };
-    if (res.is_error) throw new Error(res.result || "Agent error");
-    const so = res.structured_output ?? (JSON.parse(res.result ?? "{}") as AgentResult);
+    const so = (await askClaude({ input, schema: SCHEMA, system: SYSTEM, cwd, model: process.env.OTE_AGENT_MODEL ?? "sonnet" })) as AgentResult;
     return { reply: String(so.reply ?? ""), ops: Array.isArray(so.ops) ? so.ops.slice(0, 50) : [] };
   } finally {
     busy = false;
   }
 }
 
-function run(bin: string, args: string[], input: string, cwd: string): Promise<string> {
+/**
+ * One headless `claude -p` call on this computer's Claude Code login (no tools, no project settings), with
+ * `input` as one stream-json user message; returns the structured output for `schema`.
+ */
+export async function askClaude(o: { input: string; schema: string; system: string; cwd: string; model: string; timeoutMs?: number }): Promise<unknown> {
+  const out = await run(
+    claudeBin(),
+    [
+      "-p",
+      "--input-format", "stream-json",
+      "--output-format", "stream-json",
+      "--verbose",
+      "--json-schema", o.schema,
+      "--system-prompt", o.system,
+      "--tools", "",
+      "--setting-sources", "",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--no-session-persistence",
+      "--model", o.model,
+    ],
+    o.input + "\n",
+    o.cwd,
+    o.timeoutMs,
+  );
+  const last = out
+    .split("\n")
+    .map((l) => {
+      try {
+        return JSON.parse(l) as { type?: string };
+      } catch {
+        return null;
+      }
+    })
+    .filter((x) => x?.type === "result")
+    .at(-1);
+  if (!last) throw new Error("No answer from Claude");
+  const res = last as { is_error?: boolean; result?: string; structured_output?: unknown };
+  if (res.is_error) throw new Error(res.result || "Claude error");
+  return res.structured_output ?? JSON.parse(res.result ?? "{}");
+}
+
+function run(bin: string, args: string[], input: string, cwd: string, timeoutMs = 120_000): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn(bin, args, { cwd, env: { ...process.env, PATH: `${path.dirname(bin)}:${process.env.PATH ?? ""}` } });
     let stdout = "";
     let stderr = "";
     const timer = setTimeout(() => {
       child.kill("SIGTERM");
-      reject(new Error("The agent took too long to answer (120 s)."));
-    }, 120_000);
+      reject(new Error(`Claude took too long to answer (${Math.round(timeoutMs / 1000)} s).`));
+    }, timeoutMs);
     child.stdout.on("data", (d) => (stdout += d));
     child.stderr.on("data", (d) => (stderr += d));
     child.on("error", (e) => {

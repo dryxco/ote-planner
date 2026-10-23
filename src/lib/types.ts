@@ -157,6 +157,25 @@ export interface Artifact {
   updatedAt: number;
 }
 
+export type MealKind = "breakfast" | "lunch" | "dinner" | "snack";
+
+/** A meal logged with photos (the Meals tab); what's in it is read from the photos by Claude. */
+export interface Meal {
+  id: string;
+  /** When it was eaten (the first photo's time, or when it was logged). */
+  at: number;
+  kind: MealKind;
+  /** Uploaded photos (/api/artifacts/media URLs, never data: URLs). */
+  photos: string[];
+  /** What's in it, with rough calories (from the photos, editable). */
+  dishes: { name: string; kcal: number | null }[];
+  /** "reading": the photos are being read; "failed": they couldn't be (see `error`); "done": dishes are in. */
+  status: "reading" | "failed" | "done";
+  error?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 /** A node of an artifact's document (ProseMirror JSON). */
 export interface ArtifactDoc {
   type: string;

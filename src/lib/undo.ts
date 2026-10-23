@@ -4,7 +4,7 @@ import { useSync } from "./store";
 import { remoteApply } from "./sync-client";
 
 /**
- * Undo / redo for your own edits (plans, actuals, to-dos, activities, artifacts, hidden calendar events): ⌘Z / Ctrl+Z, and
+ * Undo / redo for your own edits (plans, actuals, to-dos, activities, artifacts, meals, hidden calendar events): ⌘Z / Ctrl+Z, and
  * ⇧⌘Z / Ctrl+Shift+Z / Ctrl+Y to redo. Changes arriving from other devices aren't recorded.
  * An undo is an ordinary edit, so it syncs like any other.
  *
@@ -12,7 +12,7 @@ import { remoteApply } from "./sync-client";
  * that changed again since (another device checked it off, say): it used to restore a copy of every
  * to-do, which also undid whatever had arrived from other devices meanwhile.
  */
-const KEYS = ["plans", "actuals", "todos", "activities", "artifacts"] as const;
+const KEYS = ["plans", "actuals", "todos", "activities", "artifacts", "meals"] as const;
 type Col = (typeof KEYS)[number];
 type Rec = { id: string };
 /** Per collection: record id -> [before, after] (undefined = didn't exist). `events`: per list, event id -> listed [before, after]. */
