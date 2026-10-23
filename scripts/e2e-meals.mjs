@@ -171,6 +171,41 @@ try {
   await page.locator("[data-meal-delete-confirm]").click();
   await page.waitForFunction(() => document.querySelectorAll("[data-meal]").length === 1);
   console.log("ok - days to go back to; a meal deletes");
+
+  // 7) a reading the phone drops (Safari: "Load failed") is tried again, then again when the page is back
+  await page.locator("[data-meals-date]").click();
+  let drops = 0;
+  await page.route("**/api/meals/read", (route) => (drops++, route.abort("failed")));
+  await pickPhotos(page, "[data-meal-album-input]", [{ name: "e.png", h: 15, m: 30, b64: b64([150, 120, 200]) }]);
+  await page.locator("[data-meal-error]", { hasText: "Couldn't reach the server" }).waitFor({ timeout: 20000 });
+  assert.equal(drops, 3, "tried 3 times before giving up for now");
+  await page.unroute("**/api/meals/read");
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await page.waitForFunction(() => [...document.querySelectorAll("[data-meal]")].every((el) => !el.querySelector("[data-meal-error]") && !el.querySelector("[data-meal-reading]")));
+  st = await store(page);
+  const snack = st.meals.find((m) => new Date(m.at).getHours() === 15);
+  assert.equal(snack.status, "done");
+  assert.equal(snack.dishes.length, 2);
+  console.log("ok - a dropped reading is retried, and read once the page is back");
+
+  // 8) a page left open past midnight moves on to the new day (a photo taken then goes on that day)
+  const night = await ctx.newPage();
+  const late = new Date();
+  late.setDate(late.getDate() + 1);
+  late.setHours(23, 58, 0, 0);
+  await night.clock.install({ time: late });
+  await night.goto(base + "/meals");
+  await night.locator("[data-meals-date]", { hasText: "Today" }).waitFor();
+  await night.clock.fastForward("08:45:00"); // to 8:43 the next morning
+  await night.locator("[data-meals-date]", { hasText: "Today" }).waitFor();
+  await pickPhotos(night, "[data-meal-album-input]", [{ name: "m.png", h: 8, m: 43, b64: b64([210, 180, 120]) }]);
+  await night.waitForFunction(() => document.querySelectorAll("[data-meal]").length === 1, null, { timeout: 20000 });
+  const morning = (await store(night)).meals.find((m) => new Date(m.at).getHours() === 8 && new Date(m.at).getMinutes() === 43 && new Date(m.at).getDate() !== new Date(meals[0].at).getDate());
+  const want = new Date(late.getTime() + 86400e3);
+  assert.ok(morning, "the 8:43 photo is a meal");
+  assert.equal(new Date(morning.at).getDate(), want.getDate(), "on the new day, not the day the page was opened");
+  await night.close();
+  console.log("ok - an open page moves on past midnight; a photo then goes on the new day");
   console.log("meals e2e passed");
 } finally {
   await browser.close();

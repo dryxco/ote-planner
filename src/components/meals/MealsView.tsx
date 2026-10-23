@@ -15,17 +15,52 @@ import { dayCard } from "./day-card";
 
 const images = (list: FileList | null | undefined) => [...(list ?? [])].filter((f) => f.type.startsWith("image/") || /\.(heic|heif)$/i.test(f.name));
 
-/** Read (or read again) what's in a meal from its photos; the dishes land in the meal as it syncs. */
+/** Said when the reading never reached the server (the phone dropped it): it's tried again by itself. */
+export const OFFLINE = "Couldn't reach the server — trying again when you're back";
+/** A reading still "reading" this long after its last change was cut off (the page closed mid-way). */
+const STALE_READING_MS = 2 * 60_000;
+const reading = new Set<string>();
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Read (or read again) what's in a meal from its photos; the dishes land in the meal as it syncs.
+ * A dropped request (iOS cuts fetches off when the camera or another app takes over, or the screen
+ * locks: Safari says only "Load failed") is retried twice, then again when the page is back.
+ */
 async function readMeal(id: string) {
   const { meals, updateMeal } = useSync.getState();
   const m = meals.find((x) => x.id === id);
-  if (!m?.photos.length) return;
+  if (!m?.photos.length || reading.has(id)) return;
+  reading.add(id);
   updateMeal(id, { status: "reading", error: undefined });
   try {
-    const r = await readPhotos(m.photos);
-    updateMeal(id, { dishes: r.dishes, status: "done", error: r.dishes.length ? undefined : (r.note ?? "No food found in the photos") });
-  } catch (e) {
-    updateMeal(id, { status: "failed", error: (e as Error).message });
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const r = await readPhotos(m.photos);
+        updateMeal(id, { dishes: r.dishes, status: "done", error: r.dishes.length ? undefined : (r.note ?? "No food found in the photos") });
+        return;
+      } catch (e) {
+        // a TypeError is the network (no answer at all); anything else is the server's own reason
+        const dropped = e instanceof TypeError;
+        if (dropped && attempt < 2) {
+          await wait(1500 * (attempt + 1));
+          continue;
+        }
+        updateMeal(id, { status: "failed", error: dropped ? OFFLINE : (e as Error).message });
+        return;
+      }
+    }
+  } finally {
+    reading.delete(id);
+  }
+}
+
+/** Readings that were cut off (dropped, or left "reading" by a closed page): read again. */
+export function resumeReadings(now = Date.now()) {
+  for (const m of useSync.getState().meals ?? []) {
+    if (!m.photos.length || reading.has(m.id)) continue;
+    const cut = (m.status === "failed" && m.error === OFFLINE) || (m.status === "reading" && now - m.updatedAt > STALE_READING_MS);
+    if (cut) void readMeal(m.id);
   }
 }
 
@@ -72,7 +107,21 @@ export function MealsView() {
   const all = useSync((s) => s.meals) ?? [];
   const desktop = useIsDesktop();
   const today = logicalDate(now, dayStart);
-  const [date, setDate] = useState(today);
+  // null = today, whatever day that is now (an open page past midnight moves on to the new day)
+  const [picked, setPicked] = useState<number | null>(null);
+  const date = picked ?? today;
+  const setDate = (d: number) => setPicked(d === today ? null : d);
+  // cut-off readings go again on opening the tab and whenever the page is back in front
+  useEffect(() => {
+    resumeReadings();
+    const back = () => document.visibilityState === "visible" && resumeReadings();
+    document.addEventListener("visibilitychange", back);
+    window.addEventListener("online", back);
+    return () => {
+      document.removeEventListener("visibilitychange", back);
+      window.removeEventListener("online", back);
+    };
+  }, []);
   const meals = mealsOn(all, date, dayStart);
   const total = dayKcal(meals);
   const camera = useRef<HTMLInputElement>(null);
