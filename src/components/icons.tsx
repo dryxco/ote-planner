@@ -224,6 +224,22 @@ export function XIcon({ size, ...p }: P) {
   );
 }
 
+export function ExpandIcon({ size, ...p }: P) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M14 4h6v6M10 20H4v-6M20 4l-6.5 6.5M4 20l6.5-6.5" strokeWidth={2} />
+    </svg>
+  );
+}
+
+export function CollapseIcon({ size, ...p }: P) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M20 10h-6V4M4 14h6v6M14 10l6.5-6.5M10 14l-6.5 6.5" strokeWidth={2} />
+    </svg>
+  );
+}
+
 export function SearchIcon({ size, ...p }: P) {
   return (
     <svg {...base(size)} {...p}>

@@ -158,6 +158,19 @@ try {
   const ed = page.locator("[data-artifact-editor]");
   await ed.waitFor();
   assert.equal(await page.evaluate(() => document.activeElement?.hasAttribute("data-artifact-title")), true, "title focused");
+  // full screen: the panel takes the whole window, and the choice is kept for the next one opened
+  const panel = ed.locator('section[role="dialog"]');
+  await page.waitForTimeout(400); // the slide-in
+  const vw = page.viewportSize().width;
+  assert.ok((await panel.boundingBox()).width < vw - 100, "a side panel by default");
+  await ed.locator("[data-artifact-full]").click();
+  await page.waitForFunction((w) => document.querySelector('[data-artifact-editor] section[role="dialog"]')?.getBoundingClientRect().width >= w, vw);
+  await page.screenshot({ path: `${shots}/desktop-dark-editor-full.png` });
+  assert.equal(await page.evaluate(() => localStorage.getItem("sync-artifact-full")), "1", "remembered");
+  await ed.locator("[data-artifact-full]").click();
+  await page.waitForFunction((w) => document.querySelector('[data-artifact-editor] section[role="dialog"]')?.getBoundingClientRect().width < w - 100, vw);
+  await page.locator("[data-artifact-title]").focus();
+  console.log("ok - the editor expands to full screen and back");
   await page.keyboard.type("Weekly plan");
   await page.keyboard.press("Enter");
   const mod = process.platform === "darwin" ? "Meta" : "Control";

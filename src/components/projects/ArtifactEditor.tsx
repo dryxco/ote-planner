@@ -9,11 +9,20 @@ import { Placeholder } from "@tiptap/extensions";
 import type { ArtifactDoc } from "@/lib/types";
 import { useSync } from "@/lib/store";
 import { docImages, docText, withoutInlineImages } from "@/lib/artifacts";
-import { XIcon } from "../icons";
+import { CollapseIcon, ExpandIcon, XIcon } from "../icons";
 import { cx } from "../ui";
 
 /** Typing pauses this long before the document is written to the store (and synced). */
 const SAVE_MS = 700;
+/** The panel's full-screen choice, kept for the next artifact opened on this device. */
+const FULL_KEY = "sync-artifact-full";
+const readFull = () => {
+  try {
+    return localStorage.getItem(FULL_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
 
 async function uploadImage(file: File): Promise<string> {
   const form = new FormData();
@@ -55,6 +64,14 @@ export function ArtifactEditor({ id, onClose }: { id: string; onClose: () => voi
   const [error, setError] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
   const [armed, setArmed] = useState(false);
+  const [full, setFull] = useState(readFull);
+  const toggleFull = () =>
+    setFull((f) => {
+      try {
+        localStorage.setItem(FULL_KEY, f ? "0" : "1");
+      } catch {}
+      return !f;
+    });
   const fileRef = useRef<HTMLInputElement>(null);
 
   const flush = () => {
@@ -168,7 +185,9 @@ export function ArtifactEditor({ id, onClose }: { id: string; onClose: () => voi
   // the latest closures for listeners set up once (the editor's handlers, the keys below)
   const closeRef = useRef(close);
   const linkRef = useRef(openLink);
+  const fullRef = useRef(toggleFull);
   useEffect(() => {
+    fullRef.current = toggleFull;
     flushRef.current = flush;
     insertRef.current = insertImages;
     closeRef.current = close;
@@ -183,6 +202,9 @@ export function ArtifactEditor({ id, onClose }: { id: string; onClose: () => voi
       else if (mod && e.key.toLowerCase() === "s") {
         e.preventDefault(); // it saves by itself; ⌘S just doesn't wait
         flushRef.current();
+      } else if (mod && e.shiftKey && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        fullRef.current();
       } else if (mod && e.key.toLowerCase() === "k") {
         e.preventDefault();
         linkRef.current();
@@ -211,7 +233,8 @@ export function ArtifactEditor({ id, onClose }: { id: string; onClose: () => voi
         role="dialog"
         aria-modal="true"
         aria-label={a.title || "Untitled"}
-        className="animate-panel relative flex h-full w-full flex-col bg-surface-0 pt-[env(safe-area-inset-top)] shadow-2xl lg:w-[min(880px,calc(100vw_-_140px))] lg:border-l lg:border-fg/10"
+        data-full={full || undefined}
+        className={cx("animate-panel relative flex h-full w-full flex-col bg-surface-0 pt-[env(safe-area-inset-top)] shadow-2xl", !full && "lg:w-[min(880px,calc(100vw_-_140px))] lg:border-l lg:border-fg/10")}
       >
         <header className="flex h-[52px] shrink-0 items-center gap-2 border-b border-fg/[0.07] px-3">
           <button aria-label="Close" onClick={close} className="flex h-[32px] w-[32px] items-center justify-center rounded-full text-fg/60 hover:bg-fg/[0.08] hover:text-fg">
@@ -221,6 +244,15 @@ export function ArtifactEditor({ id, onClose }: { id: string; onClose: () => voi
           <span data-artifact-status className={cx("ml-auto shrink-0 text-[12px] tabular", error ? "text-danger-soft" : "text-fg/40")}>
             {error ?? status}
           </span>
+          <button
+            data-artifact-full
+            aria-label={full ? "Exit full screen" : "Full screen"}
+            title={full ? "Exit full screen (⌘⇧F)" : "Full screen (⌘⇧F)"}
+            onClick={toggleFull}
+            className="hidden h-[32px] w-[32px] shrink-0 items-center justify-center rounded-full text-fg/50 hover:bg-fg/[0.08] hover:text-fg lg:flex"
+          >
+            {full ? <CollapseIcon size={15} /> : <ExpandIcon size={15} />}
+          </button>
           {armed ? (
             <button
               data-delete-artifact-confirm
