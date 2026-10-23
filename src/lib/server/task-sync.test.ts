@@ -163,3 +163,41 @@ test("end to end: a to-do and a plan go out, edits come back, deletes go both wa
   assert.equal(sum.deletedLocal, 1);
   assert.ok((await readCollection(owner, "todos")).find((r) => r.id === "t2")!.deleted);
 });
+
+test("decidePlan: rollovers are never taken in; real edits are", async () => {
+  const { decidePlan } = await import("./task-sync");
+  const plan = { title: "Workshop", date: "2026-10-14", start: "13:30", end: "16:00" };
+  const base = { n: plan };
+  assert.equal(decidePlan(plan, { ...plan, date: "2026-10-17" }, base, false, "2026-10-17", true, true), "skip");
+  assert.equal(decidePlan({ ...plan, date: "2026-10-19" }, { ...plan, date: "2026-10-22" }, { n: { ...plan, date: "2026-10-19" } }, false, "2026-10-23", true, true), "skip", "after midnight");
+  assert.equal(decidePlan({ ...plan, title: "" }, { ...plan, title: "Meal", date: "2026-10-22" }, { n: { ...plan, title: "" } }, false, "2026-10-23", true, true), "skip", "named only by its activity");
+  const rolled = { ...plan, date: "2026-10-17" };
+  assert.equal(decidePlan(plan, rolled, { n: rolled, rolled: true }, false, "2026-10-30", true, true), "skip", "stays skipped");
+  assert.equal(decidePlan(plan, { ...plan, start: "14:00" }, base, false, "2026-10-17", true, true), "pull", "other times");
+  assert.equal(decidePlan(plan, { ...plan, date: "2026-10-25" }, base, false, "2026-10-17", true, true), "pull", "to a day ahead");
+  assert.equal(decidePlan(plan, { ...plan, date: "2026-10-17" }, base, false, "2026-10-17", true, false), "pull", "a source that doesn't roll over");
+  assert.equal(decidePlan({ ...plan, start: "15:00" }, { ...plan, date: "2026-10-17" }, base, true, "2026-10-17", true, true), "push", "Ote wins");
+});
+
+test("several past plans moved at once are held back, and the run says why", async () => {
+  const { syncTasks, taskSyncStatus, resetTaskSync } = await import("./task-sync");
+  const { applyServerChanges, readCollection } = await import("./syncdb");
+  await resetTaskSync();
+  const owner = "bulk";
+  const board = memoryBoard(); // a source without rollover: the breaker still applies
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const t0 = today.getTime();
+  const mk = (n: number, d: number) => ({ col: "plans" as const, id: `b${n}`, updatedAt: 1, data: { id: `b${n}`, name: `P${n}`, activityId: "other", color: "#000", allDay: false, start: t0 + d * 86400e3 + 9 * 3600e3, end: t0 + d * 86400e3 + 10 * 3600e3, repeat: "never", reminder: "activity", endConfirmation: "activity", createdAt: 1 } });
+  await applyServerChanges(owner, [mk(1, -5), mk(2, -4), mk(3, -3)]);
+  await syncTasks(owner, board.src);
+  const { ymd } = (await import("./task-sync")).zoned(TZ);
+  for (const n of [1, 2, 3]) board.tasks.set(`b${n}`, { ...board.tasks.get(`b${n}`)!, date: ymd(t0), time: "11:00", endTime: "12:00" });
+  const sum = await syncTasks(owner, board.src);
+  assert.equal(sum.pulledUpdates, 0);
+  for (const n of [1, 2, 3]) {
+    const p = (await readCollection(owner, "plans")).find((r) => r.id === `b${n}`)!.data as { start: number };
+    assert.equal(p.start, mk(n, [-5, -4, -3][n - 1]).data.start, `P${n} stays`);
+  }
+  assert.match((await taskSyncStatus()).lastError ?? "", /past plans/);
+});

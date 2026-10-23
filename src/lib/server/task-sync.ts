@@ -156,6 +156,35 @@ export const isBoardRollover = (sync: PlanNorm, remote: PlanNorm, today: string)
 
 export const samePlan = (a: PlanNorm, b: PlanNorm) => a.title === b.title && a.date === b.date && a.start === b.start && a.end === b.end;
 
+/** Past plans moved by the source in one run that hold the whole batch back (see the run). */
+export const BULK_PAST_MOVES = 3;
+
+/**
+ * What one run does with a plan that's on both sides and differs:
+ * - "push": Ote changed it since the last run (Ote wins)
+ * - "skip": a board that rolls over (`rollsOver`) moved it in a way Ote never takes in — a past plan
+ *   moved forward to a day up to today with the same times (by title, or by times alone once the plan
+ *   is over: a plan named only by its activity gets that name on the board), or a rolled value already
+ *   skipped that the board still keeps. A plan is a time that's gone, not unfinished work.
+ * - "pull": take the source's value
+ */
+export function decidePlan(
+  sync: PlanNorm,
+  remote: PlanNorm,
+  base: { n: PlanNorm; rolled?: boolean } | null,
+  syncEdited: boolean,
+  today: string,
+  over: boolean,
+  rollsOver: boolean,
+): "push" | "skip" | "pull" {
+  if (!base || (!samePlan(sync, base.n) && syncEdited)) return "push";
+  if (!rollsOver) return "pull";
+  if (base.rolled && samePlan(remote, base.n)) return "skip";
+  if (isBoardRollover(sync, remote, today)) return "skip";
+  if (over && sync.date < remote.date && remote.date <= today && remote.start === sync.start && remote.end === sync.end) return "skip";
+  return "pull";
+}
+
 export function applyPlanNorm(base: Plan | null, n: PlanNorm, id: string, now: number, tz: string): Plan {
   const z = zoned(tz);
   const start = z.wall(n.date, n.start);
@@ -294,6 +323,9 @@ async function run(owner: string, src: TaskSource): Promise<Summary> {
 
     const ids = new Set<string>([...ST.keys(), ...SP.keys(), ...D.keys(), ...Object.keys(state.base)]);
     const failures: string[] = [];
+    // The source moving the dates of several plans that are already over, in one run, is never the
+    // user rescheduling: whatever the pattern, those moves wait (and Settings says why).
+    const pastMoves: { id: string; apply: () => void }[] = [];
     for (const id of ids) {
       // one bad item must not stop the rest of the board from syncing
       try {
@@ -347,18 +379,20 @@ async function run(owner: string, src: TaskSource): Promise<Summary> {
               state.base[id] = { kind: "plan", n: dn, ...(b?.kind === "plan" && b.done ? { done: true } : {}) };
               continue;
             }
-            const bn = b?.kind === "plan" ? b.n : null;
-            const sChanged = !bn || (!samePlan(spn!, bn) && syncEdited(id));
-            // a rolled date already skipped stays skipped while the board keeps it (whatever day it is now)
-            const stillRolled = b?.kind === "plan" && !!b.rolled && samePlan(dn, b.n);
-            if (!sChanged && src.rollsOver && (stillRolled || isBoardRollover(spn!, dn, z.ymd(now)))) {
+            const pb = b?.kind === "plan" ? b : null;
+            const decision = decidePlan(spn!, dn, pb, syncEdited(id), z.ymd(now), sp!.end <= now, !!src.rollsOver);
+            if (decision === "skip") {
               // keep the plan on its day; remember the board's value so it isn't pushed back (and rolled again)
-              state.base[id] = { kind: "plan", n: dn, rolled: true, ...(b?.kind === "plan" && b.done ? { done: true } : {}) };
+              state.base[id] = { kind: "plan", n: dn, rolled: true, ...(pb?.done ? { done: true } : {}) };
               sum.skipped++;
-            } else if (!sChanged) {
-              setPlan(id, applyPlanNorm(sp!, dn, id, now, tz));
-              state.base[id] = { kind: "plan", n: dn };
-              sum.pulledUpdates++;
+            } else if (decision === "pull") {
+              const apply = () => {
+                setPlan(id, applyPlanNorm(sp!, dn, id, now, tz));
+                state.base[id] = { kind: "plan", n: dn };
+                sum.pulledUpdates++;
+              };
+              if (sp!.end <= now && dn.date !== spn!.date) pastMoves.push({ id, apply });
+              else apply();
             } else if (canWrite()) {
               await src.update(id, planFields(spn!));
               writes++;
@@ -443,6 +477,10 @@ async function run(owner: string, src: TaskSource): Promise<Summary> {
         failures.push(`${id.slice(0, 8)}: ${(e as Error).message}`);
       }
     }
+    if (pastMoves.length >= BULK_PAST_MOVES) {
+      failures.push(`the source moved ${pastMoves.length} past plans to other days at once — not taken in (${pastMoves.slice(0, 3).map((m) => m.id.slice(0, 8)).join(", ")}…)`);
+      console.warn(`[sync] tasks: held back ${pastMoves.length} moves of past plans (looks like a board rollover)`);
+    } else for (const m of pastMoves) m.apply();
     // Plan done-ness, Ote -> source only: a plan is "done" in Ote when an actual confirms it. Push
     // the status when that changes (confirmed / actual removed); a check made there is left as is.
     for (const [id, b] of Object.entries(state.base)) {
