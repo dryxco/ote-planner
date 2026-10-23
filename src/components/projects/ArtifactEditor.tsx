@@ -5,6 +5,7 @@ import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/r
 import { StarterKit } from "@tiptap/starter-kit";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { Image } from "@tiptap/extension-image";
+import { TableKit } from "@tiptap/extension-table";
 import { Placeholder } from "@tiptap/extensions";
 import type { ArtifactDoc } from "@/lib/types";
 import { useSync } from "@/lib/store";
@@ -114,6 +115,8 @@ export function ArtifactEditor({ id, onClose }: { id: string; onClose: () => voi
       TaskItem.configure({ nested: true }),
       // data: images are never read in (a paste can carry them): pasted image files are uploaded instead
       Image.configure({ allowBase64: false }),
+      // tables: Tab moves cell to cell (past the last one, a new row); columns resize by their edge
+      TableKit.configure({ table: { resizable: true, cellMinWidth: 64 } }),
       Placeholder.configure({ placeholder: "Write here — # heading, - list, [ ] checklist, > quote" }),
     ],
     content: a?.body ?? "",
@@ -271,6 +274,7 @@ export function ArtifactEditor({ id, onClose }: { id: string; onClose: () => voi
           )}
         </header>
         {editor && <Toolbar editor={editor} onLink={openLink} onImage={() => fileRef.current?.click()} />}
+        {editor && <TableBar editor={editor} />}
         {link !== null && <LinkBar initial={link} onApply={applyLink} onCancel={() => setLink(null)} />}
         <input
           ref={fileRef}
@@ -352,6 +356,7 @@ function Toolbar({ editor, onLink, onImage }: { editor: Editor; onLink: () => vo
       task: e.isActive("taskList"),
       quote: e.isActive("blockquote"),
       link: e.isActive("link"),
+      table: e.isActive("table"),
     }),
   });
   const c = () => editor.chain().focus();
@@ -404,9 +409,64 @@ function Toolbar({ editor, onLink, onImage }: { editor: Editor; onLink: () => vo
       <Tool label="Divider" onClick={() => c().setHorizontalRule().run()}>
         <Glyph d="M4 12h16" />
       </Tool>
+      <Tool label="Table" on={s.table} onClick={() => (s.table ? c().run() : c().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run())}>
+        <Glyph d="M4 5h16v14H4zM4 10h16M4 14.5h16M10 5v14M15 5v14" />
+      </Tool>
       <Tool label="Image" onClick={onImage}>
         <Glyph d="M5 5h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 16l4.5-4.5 3.5 3.5 2.5-2.5L20 17.5M15.5 9.5h.01" />
       </Tool>
+    </div>
+  );
+}
+
+/** While the cursor is in a table: rows, columns, the header row, and removing it. */
+function TableBar({ editor }: { editor: Editor }) {
+  const s = useEditorState({
+    editor,
+    selector: ({ editor: e }) => {
+      // the table around the cursor: does its first row hold header cells?
+      const $from = e.state.selection.$from;
+      for (let d = $from.depth; d > 0; d--) {
+        const n = $from.node(d);
+        if (n.type.name === "table") return { in: true, header: n.firstChild?.firstChild?.type.name === "tableHeader" };
+      }
+      return { in: false, header: false };
+    },
+  });
+  if (!s.in) return null;
+  const c = () => editor.chain().focus();
+  const act = (label: string, run: () => void, danger = false) => (
+    <button
+      type="button"
+      onMouseDown={(e) => e.preventDefault()} // keep the cell
+      onClick={run}
+      className={cx("shrink-0 rounded-full px-2.5 py-0.5 text-[12px] hover:bg-fg/[0.08]", danger ? "text-danger-soft" : "text-fg/65 hover:text-fg")}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div data-table-bar className="no-scrollbar flex shrink-0 items-center gap-1 overflow-x-auto border-b border-fg/[0.07] bg-fg/[0.025] px-3 py-1 lg:justify-center">
+      <span className="mr-1 shrink-0 text-[11.5px] text-fg/40">Table</span>
+      {act("+ Row above", () => c().addRowBefore().run())}
+      {act("+ Row below", () => c().addRowAfter().run())}
+      {act("+ Column left", () => c().addColumnBefore().run())}
+      {act("+ Column right", () => c().addColumnAfter().run())}
+      <Sep />
+      {act("− Row", () => c().deleteRow().run())}
+      {act("− Column", () => c().deleteColumn().run())}
+      <button
+        type="button"
+        data-header-row
+        aria-pressed={s.header}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => c().toggleHeaderRow().run()}
+        className={cx("shrink-0 rounded-full px-2.5 py-0.5 text-[12px]", s.header ? "bg-link/[0.14] text-link" : "text-fg/65 hover:bg-fg/[0.08] hover:text-fg")}
+      >
+        Header row
+      </button>
+      <Sep />
+      {act("Delete table", () => c().deleteTable().run(), true)}
     </div>
   );
 }

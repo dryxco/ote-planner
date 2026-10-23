@@ -317,6 +317,50 @@ try {
   assert.match(img.headers.get("content-security-policy") ?? "", /sandbox/);
   console.log("ok - editor: headings, marks, nested / numbered / check lists, quote, divider, link, picked + pasted images (uploaded)");
 
+  // tables: from the toolbar (3×3, a header row); Tab goes cell to cell and past the last one adds a row;
+  // the table bar adds a column and removes the table
+  await ed.locator(".artifact-doc").evaluate((el) => el.editor?.commands?.focus?.("end"));
+  await ed.locator(".artifact-doc > :last-child").click();
+  await page.keyboard.press(`${mod}+ArrowDown`);
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await ed.getByRole("button", { name: "Table", exact: true }).click();
+  await ed.locator(".artifact-doc table").waitFor();
+  await ed.locator("[data-table-bar]").waitFor();
+  assert.equal(await ed.locator(".artifact-doc table th").count(), 3, "a header row of 3");
+  assert.equal(await ed.locator(".artifact-doc table tr").count(), 3, "3 rows");
+  for (const v of ["Item", "Owner", "Due", "Copy", "Mina", "Fri", "Shots", "Jun", "Mon"]) {
+    await page.keyboard.type(v);
+    await page.keyboard.press("Tab");
+  }
+  assert.equal(await ed.locator(".artifact-doc table tr").count(), 4, "Tab past the last cell adds a row");
+  await page.keyboard.type("QA");
+  await ed.locator("[data-table-bar]").getByRole("button", { name: "+ Column right" }).click();
+  assert.equal(await ed.locator(".artifact-doc table tr").first().locator("th").count(), 4, "a column added");
+  const header = ed.locator("[data-header-row]");
+  assert.equal(await header.getAttribute("aria-pressed"), "true", "the header row shows as on, from a body cell too");
+  await header.click();
+  assert.equal(await ed.locator(".artifact-doc table th").count(), 0, "header row off");
+  assert.equal(await header.getAttribute("aria-pressed"), "false");
+  await header.click();
+  assert.equal(await ed.locator(".artifact-doc table th").count(), 4, "and back on");
+  await page.locator("[data-artifact-status]", { hasText: "Saved" }).waitFor();
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: `${shots}/desktop-dark-editor-table.png` });
+  st = await store(page);
+  let tjson = JSON.stringify(st.artifacts.find((a) => a.campaignId === "c-health").body);
+  for (const t of ['"table"', '"tableRow"', '"tableHeader"', '"tableCell"', '"Owner"', '"Mina"', '"QA"']) assert.ok(tjson.includes(t), `document has ${t}`);
+  // out of the table: the bar goes
+  await ed.locator(".artifact-doc table td").first().click();
+  await ed.locator("[data-table-bar]").getByRole("button", { name: "Delete table" }).click();
+  assert.equal(await ed.locator(".artifact-doc table").count(), 0, "table removed");
+  assert.equal(await ed.locator("[data-table-bar]").count(), 0, "the bar goes with it");
+  await page.waitForTimeout(900);
+  st = await store(page);
+  tjson = JSON.stringify(st.artifacts.find((a) => a.campaignId === "c-health").body);
+  assert.ok(!tjson.includes('"table"') && tjson.includes('"image"'), "the rest of the document stays");
+  console.log("ok - tables: insert, Tab through cells (a new row at the end), add a column, delete");
+
   // the media endpoint: only images, only with the upload header, only same-origin
   const upload = (headers, body) => fetch(base + "/api/artifacts/media", { method: "POST", headers: { cookie, ...headers }, body });
   const form = (bytes, name) => {

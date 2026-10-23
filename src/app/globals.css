@@ -324,6 +324,55 @@ button {
   border-radius: 10px;
   margin: 0.6em 0;
 }
+/* tables (scrolls sideways when wider than the page) */
+.artifact-doc .tableWrapper {
+  overflow-x: auto;
+  margin: 0.8em 0;
+}
+.artifact-doc table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+.artifact-doc th,
+.artifact-doc td {
+  position: relative;
+  min-width: 64px;
+  border: 1px solid var(--line-strong);
+  padding: 6px 10px;
+  vertical-align: top;
+  text-align: left;
+}
+.artifact-doc th {
+  font-weight: 600;
+  background: color-mix(in srgb, var(--fg) 5%, transparent);
+}
+.artifact-doc td > p,
+.artifact-doc th > p {
+  margin: 0;
+}
+.artifact-doc .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--link) 14%, transparent);
+  pointer-events: none;
+}
+.artifact-doc .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: -1px;
+  width: 3px;
+  background: var(--link);
+  pointer-events: none;
+}
+.artifact-doc.resize-cursor,
+.resize-cursor .artifact-doc {
+  cursor: col-resize;
+}
 .artifact-doc .ProseMirror-selectednode {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
