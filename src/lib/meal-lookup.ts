@@ -22,7 +22,9 @@ export async function estimateDish(mealId: string, name: string, onChange: () =>
     // the dish may have moved or been renamed meanwhile: fill in the one that still has this name
     const i = m.dishes.findIndex((x) => x.name === name && x.kcal === null);
     if (i < 0) return;
-    updateMeal(mealId, { dishes: m.dishes.map((x, j) => (j === i ? { name, amount: d.amount, kcal: d.kcal, basis: d.basis, added: true } : x)) });
+    // a typed-in dish stays one; a photo dish someone renamed stays a photo one
+    const added = m.dishes[i].added;
+    updateMeal(mealId, { dishes: m.dishes.map((x, j) => (j === i ? { name, amount: d.amount, kcal: d.kcal, basis: d.basis, ...(added ? { added: true } : {}) } : x)) });
   } catch {
     // leaves it without calories; typing them in still works
   } finally {

@@ -26,13 +26,14 @@ test("the agent sees meals and can add one, fix a dish (looked up unless a numbe
 
   // a number the user gives is kept as theirs
   applyAgentOps([{ op: "set_dish", meal_id: "b", index: 0, kcal: 156 }]);
-  assert.deepEqual(useSync.getState().meals.find((m) => m.id === "b")!.dishes[0], { name: "달걀", amount: "2개", kcal: 156, basis: "직접 입력", added: true });
+  assert.deepEqual(useSync.getState().meals.find((m) => m.id === "b")!.dishes[0], { name: "달걀", amount: "2개", kcal: 156, basis: "직접 입력" }, "a fix of a photo dish stays a photo dish (Read again reads it anew, not both)");
   // a new name without a number: looked up again
   applyAgentOps([{ op: "set_dish", meal_id: "b", index: 0, name: "구운 달걀" }]);
   assert.equal(useSync.getState().meals.find((m) => m.id === "b")!.dishes[0].kcal, null);
   // a dish added to a meal, one removed, a meal's kind changed, a meal deleted
   applyAgentOps([{ op: "set_dish", meal_id: "b", name: "바나나", amount: "1개", kcal: 98 }]);
   assert.equal(useSync.getState().meals.find((m) => m.id === "b")!.dishes.length, 2);
+  assert.equal(useSync.getState().meals.find((m) => m.id === "b")!.dishes[1].added, true, "a new dish is a typed-in one");
   applyAgentOps([{ op: "delete_dish", meal_id: "b", index: 0 }, { op: "update_meal", id: "b", kind: "snack" }]);
   const b = useSync.getState().meals.find((m) => m.id === "b")!;
   assert.deepEqual([b.kind, b.dishes.map((d) => d.name)], ["snack", ["바나나"]]);

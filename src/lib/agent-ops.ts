@@ -124,10 +124,15 @@ export function agentContext() {
   };
 }
 
-/** A dish the agent set: kept as typed in by hand (Read again keeps it); a number given is the user's. */
-function dishOf(name: string, amount: string | undefined, kcal: number | null | undefined, basis?: string): Dish {
+/**
+ * A dish the agent set; a number given is the user's. A new dish counts as typed in by hand (Read
+ * again keeps it); a fix of one read from the photos stays one of those (Read again reads it anew,
+ * instead of keeping both).
+ */
+function dishOf(name: string, amount: string | undefined, kcal: number | null | undefined, basis?: string, added = true): Dish {
   const k = typeof kcal === "number" && Number.isFinite(kcal) && kcal >= 0 && kcal <= 5000 ? Math.round(kcal) : null;
-  const d: Dish = { name: name.trim().slice(0, 80), kcal: k, added: true };
+  const d: Dish = { name: name.trim().slice(0, 80), kcal: k };
+  if (added) d.added = true;
   if (amount?.trim()) d.amount = amount.trim().slice(0, 40);
   if (k !== null) d.basis = basis ?? "직접 입력";
   return d;
@@ -334,7 +339,7 @@ function applyOne(op: AgentOp): string {
       // a new name or amount without a number: its calories are looked up again
       const changed = !cur || name !== cur.name || (op.amount !== undefined && op.amount !== cur.amount);
       const kcal = op.kcal !== undefined ? op.kcal : changed ? null : cur!.kcal;
-      const d = dishOf(name, op.amount ?? cur?.amount, kcal, kcal === cur?.kcal ? cur?.basis : undefined);
+      const d = dishOf(name, op.amount ?? cur?.amount, kcal, kcal === cur?.kcal ? cur?.basis : undefined, !cur || !!cur.added);
       const dishes = at >= 0 ? m.dishes.map((x, j) => (j === at ? d : x)) : [...m.dishes, d];
       s.updateMeal(m.id, { dishes });
       lookUp(m.id, [d]);
