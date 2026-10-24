@@ -237,6 +237,26 @@ try {
   await page.waitForFunction(() => document.querySelectorAll("[data-meal]").length === 1);
   console.log("ok - days to go back to; a meal deletes");
 
+  // 6b) without a photo: a meal now, its dish ready to type in, looked up when named; left empty, it goes away
+  await page.locator("[data-meal-typed]").click();
+  await page.waitForFunction(() => document.querySelectorAll("[data-meal]").length === 2);
+  const typedName = page.locator('[data-dish] input[aria-label="Dish"]:focus');
+  await typedName.fill("바나나 1개");
+  await typedName.press("Enter");
+  const typedId = (await store(page)).meals.find((m) => m.id !== meals[0].id).id;
+  await page.locator(`[data-meal="${typedId}"] [data-dish-basis]`, { hasText: "1개 · test" }).waitFor();
+  const typed = (await store(page)).meals.find((m) => m.id === typedId);
+  assert.deepEqual(typed.photos, []);
+  assert.deepEqual(typed.dishes, [{ name: "바나나 1개", amount: "1개", kcal: 111, basis: "test", added: true }]);
+  assert.ok(Math.abs(typed.at - Date.now()) < 120e3, "logged now");
+  await page.locator(`[data-meal="${typed.id}"]`).getByRole("button", { name: "Delete meal" }).click();
+  await page.locator("[data-meal-delete-confirm]").click();
+  await page.locator("[data-meal-typed]").click();
+  await page.waitForFunction(() => document.querySelectorAll("[data-meal]").length === 2);
+  await page.locator("[data-meals-date]").click(); // tapped away without typing
+  await page.waitForFunction(() => document.querySelectorAll("[data-meal]").length === 1);
+  console.log("ok - a meal without a photo: typed in and looked up; left empty, it goes away");
+
   // 7) a reading the phone drops (Safari: "Load failed") is tried again, then again when the page is back
   await page.locator("[data-meals-date]").click();
   let drops = 0;

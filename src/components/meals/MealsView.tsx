@@ -116,6 +116,14 @@ async function addPhotos(files: File[], date: number, into?: string) {
   );
 }
 
+/** A meal without a photo, logged now (on `date`): it opens with a dish to type in, looked up when named. */
+function addTyped(date: number) {
+  const { addMeal, settings } = useSync.getState();
+  const now = Date.now();
+  const at = timeOn(now, date, settings.dayStart, now);
+  addMeal({ at, kind: kindAt(at), photos: [], dishes: [{ name: "", kcal: null, added: true }], status: "done" });
+}
+
 /**
  * The Meals tab: a day's meals from photos. Take one with the camera or pick from Photos; what's in it
  * (and rough calories) is read from the photos and filled in, and can be fixed by hand. Share makes one
@@ -203,6 +211,15 @@ export function MealsView() {
               <PhotosGlyph />
               {desktop ? "Add meal photos" : "From Photos"}
             </button>
+            {/* no photo: just write down what it was */}
+            <button
+              data-meal-typed
+              onClick={() => addTyped(date)}
+              className="col-span-2 flex h-[44px] items-center justify-center gap-2 rounded-[14px] bg-surface text-[14px] font-medium text-fg ring-1 ring-fg/10"
+            >
+              <PencilGlyph />
+              Without a photo
+            </button>
           </div>
           <input ref={camera} type="file" accept="image/*" capture="environment" hidden data-meal-camera-input onChange={(e) => (pick(e.currentTarget.files), (e.currentTarget.value = ""))} />
           <input ref={album} type="file" accept="image/*" multiple hidden data-meal-album-input onChange={(e) => (pick(e.currentTarget.files), (e.currentTarget.value = ""))} />
@@ -212,7 +229,7 @@ export function MealsView() {
               <MealCard key={m.id} m={m} date={date} />
             ))}
           </div>
-          {!meals.length && <p className="py-10 text-center text-[13px] text-fg/40">Take a photo of what you eat — what&apos;s in it is filled in for you.</p>}
+          {!meals.length && <p className="py-10 text-center text-[13px] text-fg/40">Take a photo of what you eat — what&apos;s in it is filled in for you. Or write it down without one.</p>}
         </div>
       </div>
       {share && <ShareSheet date={date} meals={meals} onClose={() => setShare(false)} />}
@@ -236,7 +253,12 @@ function MealCard({ m, date }: { m: Meal; date: number }) {
   });
   const rename = (i: number, v: string) => {
     const name = v.trim();
-    if (!name) return setDishes(m.dishes.filter((_, j) => j !== i));
+    if (!name) {
+      const rest = m.dishes.filter((_, j) => j !== i);
+      // a meal without a photo left with nothing in it goes away (Without a photo, then nothing typed)
+      if (!rest.length && !m.photos.length) return deleteMeal(m.id);
+      return setDishes(rest);
+    }
     const d = m.dishes[i];
     // a new name for a typed-in dish: its old numbers don't fit any more, look it up again
     const next: Dish = d.added ? { name, kcal: null, added: true } : { ...d, name };
@@ -500,4 +522,5 @@ const glyph = (d: string) => (
 );
 const CameraGlyph = () => glyph("M4 8h3l2-2.5h6L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z");
 const PhotosGlyph = () => glyph("M5 5h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 16l4.5-4.5 3.5 3.5 2.5-2.5L20 17.5M15.5 9.5h.01");
+const PencilGlyph = () => glyph("M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4");
 const ShareGlyph = () => glyph("M12 15V4M8 8l4-4 4 4M6 12v7a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-7");
