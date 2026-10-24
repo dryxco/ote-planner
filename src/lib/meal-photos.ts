@@ -1,4 +1,5 @@
 "use client";
+import type { Dish } from "./types";
 
 /** Photos for meals: made smaller in the browser (also turns HEIC into JPEG), then uploaded like an artifact's images. */
 const MAX_SIDE = 1600;
@@ -26,9 +27,17 @@ export async function uploadPhoto(file: File): Promise<string> {
 }
 
 /** What's in the meal, from its photos (Claude on the server). */
-export async function readPhotos(photos: string[]): Promise<{ dishes: { name: string; kcal: number | null }[]; note?: string }> {
+export async function readPhotos(photos: string[]): Promise<{ dishes: Dish[]; note?: string }> {
   const r = await fetch("/api/meals/read", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ photos }) });
-  const j = (await r.json().catch(() => ({}))) as { dishes?: { name: string; kcal: number | null }[]; note?: string; error?: string };
+  const j = (await r.json().catch(() => ({}))) as { dishes?: Dish[]; note?: string; error?: string };
   if (!r.ok || !j.dishes) throw new Error(j.error ?? `HTTP ${r.status}`);
   return { dishes: j.dishes, note: j.note };
+}
+
+/** The calories of a dish typed in by hand (looked up on the server). */
+export async function estimate(name: string): Promise<Dish> {
+  const r = await fetch("/api/meals/estimate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name }) });
+  const j = (await r.json().catch(() => ({}))) as { dish?: Dish; error?: string };
+  if (!r.ok || !j.dish) throw new Error(j.error ?? `HTTP ${r.status}`);
+  return j.dish;
 }

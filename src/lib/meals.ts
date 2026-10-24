@@ -1,4 +1,4 @@
-import type { Meal, MealKind } from "./types";
+import type { Dish, Meal, MealKind } from "./types";
 import { logicalDate } from "./time";
 
 /** Each meal's own quiet colour (muted, so photos stay the loudest thing): ochre, sage, slate, dusty rose. */
@@ -36,14 +36,20 @@ export function mealKcal(m: Meal): number | null {
 export const dayKcal = (meals: Meal[]) => meals.reduce((sum, m) => sum + (mealKcal(m) ?? 0), 0);
 
 /** What Claude said about the photos, cleaned up (names trimmed and capped, calories whole and sane). */
-export function cleanDishes(raw: unknown): { name: string; kcal: number | null }[] {
+export function cleanDishes(raw: unknown): Dish[] {
   const list = Array.isArray(raw) ? raw : [];
+  const text = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : undefined);
   return list
     .map((d) => {
-      const o = (d ?? {}) as { name?: unknown; kcal?: unknown };
-      const name = typeof o.name === "string" ? o.name.trim().slice(0, 80) : "";
+      const o = (d ?? {}) as { name?: unknown; amount?: unknown; kcal?: unknown; basis?: unknown };
+      const name = text(o.name, 80) ?? "";
       const k = typeof o.kcal === "number" && Number.isFinite(o.kcal) ? Math.round(o.kcal) : null;
-      return { name, kcal: k !== null && k >= 0 && k <= 5000 ? k : null };
+      const dish: Dish = { name, kcal: k !== null && k >= 0 && k <= 5000 ? k : null };
+      const amount = text(o.amount, 40);
+      const basis = text(o.basis, 120);
+      if (amount) dish.amount = amount;
+      if (basis) dish.basis = basis;
+      return dish;
     })
     .filter((d) => d.name)
     .slice(0, 20);

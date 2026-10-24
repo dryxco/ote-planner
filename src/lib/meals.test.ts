@@ -52,3 +52,10 @@ test("a photo from another day, picked for this day: this day at the current tim
   assert.equal(timeOn(at(13, 5, 23), day, 0, at(9, 15)), at(9, 15, 20), "otherwise that day, now's time");
   assert.equal(timeOn(at(13, 5, 23), day, 4 * 60, at(1, 30)), at(1, 30, 21), "before the day starts: the next calendar day");
 });
+
+test("the amount seen and where the calories come from are kept (trimmed); blanks are left out", () => {
+  assert.deepEqual(cleanDishes([{ name: "쿠크다스 화이트", amount: " 1개 (8g) ", kcal: 44, basis: "크라운 영양성분표" }, { name: "물", amount: "", kcal: 0, basis: "  " }]), [
+    { name: "쿠크다스 화이트", amount: "1개 (8g)", kcal: 44, basis: "크라운 영양성분표" },
+    { name: "물", kcal: 0 },
+  ]);
+});

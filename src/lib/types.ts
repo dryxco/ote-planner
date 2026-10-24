@@ -159,6 +159,17 @@ export interface Artifact {
 
 export type MealKind = "breakfast" | "lunch" | "dinner" | "snack";
 
+export interface Dish {
+  name: string;
+  /** How much was in the photo, e.g. "1개 (8g)", "1공기 (210g)". */
+  amount?: string;
+  kcal: number | null;
+  /** Where the number comes from, e.g. "크라운 영양성분표 1개 44kcal". */
+  basis?: string;
+  /** Typed in by hand (+ Dish), not read from the photos: reading the photos again keeps it. */
+  added?: boolean;
+}
+
 /** A meal logged with photos (the Meals tab); what's in it is read from the photos by Claude. */
 export interface Meal {
   id: string;
@@ -167,8 +178,8 @@ export interface Meal {
   kind: MealKind;
   /** Uploaded photos (/api/artifacts/media URLs, never data: URLs). */
   photos: string[];
-  /** What's in it, with rough calories (from the photos, editable). */
-  dishes: { name: string; kcal: number | null }[];
+  /** What's in it (from the photos, editable): how much was seen, its calories, and where that number comes from. */
+  dishes: Dish[];
   /** "reading": the photos are being read; "failed": they couldn't be (see `error`); "done": dishes are in. */
   status: "reading" | "failed" | "done";
   error?: string;

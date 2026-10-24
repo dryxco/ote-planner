@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Meal, MealKind } from "@/lib/types";
+import type { Dish, Meal, MealKind } from "@/lib/types";
 import { useSync } from "@/lib/store";
 import { useNow } from "@/lib/hooks";
 import { useIsDesktop } from "@/lib/media";
 import { WEEKDAY_SHORT, addDays, logicalDate, pad2 } from "@/lib/time";
 import { MEAL_KINDS, dayKcal, groupByTime, kindAt, kindColor, mealKcal, mealsOn, timeOn } from "@/lib/meals";
-import { readPhotos, uploadPhoto } from "@/lib/meal-photos";
+import { estimate, readPhotos, uploadPhoto } from "@/lib/meal-photos";
 import { ChevronLeft, ChevronRight, PlusIcon, XIcon } from "../icons";
 import { TabHeader } from "../period";
 import { cx } from "../ui";
@@ -37,7 +37,9 @@ async function readMeal(id: string) {
     for (let attempt = 0; ; attempt++) {
       try {
         const r = await readPhotos(m.photos);
-        updateMeal(id, { dishes: r.dishes, status: "done", error: r.dishes.length ? undefined : (r.note ?? "No food found in the photos") });
+        // what was typed in by hand stays; only what came from the photos is replaced
+        const mine = (useSync.getState().meals.find((x) => x.id === id)?.dishes ?? []).filter((d) => d.added);
+        updateMeal(id, { dishes: [...r.dishes, ...mine], status: "done", error: r.dishes.length || mine.length ? undefined : (r.note ?? "No food found in the photos") });
         return;
       } catch (e) {
         // a TypeError is the network (no answer at all); anything else is the server's own reason
@@ -52,6 +54,34 @@ async function readMeal(id: string) {
     }
   } finally {
     reading.delete(id);
+  }
+}
+
+/** Dishes being looked up right now ("meal id|name"), and ones tried this session (not tried again on every render). */
+const estimating = new Set<string>();
+const tried = new Set<string>();
+
+/** A dish typed in by hand: its amount and calories looked up and filled in (it stays "added"). */
+async function estimateDish(mealId: string, name: string, onChange: () => void) {
+  const key = `${mealId}|${name}`;
+  if (estimating.has(key)) return;
+  estimating.add(key);
+  tried.add(key);
+  onChange();
+  try {
+    const d = await estimate(name);
+    const { meals, updateMeal } = useSync.getState();
+    const m = meals.find((x) => x.id === mealId);
+    if (!m) return;
+    // the dish may have moved or been renamed meanwhile: fill in the one that still has this name
+    const i = m.dishes.findIndex((x) => x.name === name && x.kcal === null);
+    if (i < 0) return;
+    updateMeal(mealId, { dishes: m.dishes.map((x, j) => (j === i ? { name, amount: d.amount, kcal: d.kcal, basis: d.basis, added: true } : x)) });
+  } catch {
+    // leaves it without calories; typing them in still works
+  } finally {
+    estimating.delete(key);
+    onChange();
   }
 }
 
@@ -208,6 +238,21 @@ function MealCard({ m, date }: { m: Meal; date: number }) {
   const kcal = mealKcal(m);
   const t = new Date(m.at);
   const setDishes = (dishes: Meal["dishes"]) => updateMeal(m.id, { dishes });
+  const [, rerender] = useState(0);
+  const changed = () => rerender((n) => n + 1);
+  // a typed-in dish without calories (as typed, or from before lookups) is looked up once
+  useEffect(() => {
+    for (const d of m.dishes) if (d.name && d.kcal === null && !tried.has(`${m.id}|${d.name}`) && (d.added || !d.basis)) void estimateDish(m.id, d.name, changed);
+  });
+  const rename = (i: number, v: string) => {
+    const name = v.trim();
+    if (!name) return setDishes(m.dishes.filter((_, j) => j !== i));
+    const d = m.dishes[i];
+    // a new name for a typed-in dish: its old numbers don't fit any more, look it up again
+    const next: Dish = d.added ? { name, kcal: null, added: true } : { ...d, name };
+    setDishes(m.dishes.map((x, j) => (j === i ? next : x)));
+    if (d.added) void estimateDish(m.id, name, changed);
+  };
   return (
     <section data-meal={m.id} className="rounded-[16px] bg-surface p-3 ring-1 ring-fg/[0.06]">
       <div className="mb-2.5 flex items-center gap-2">
@@ -294,8 +339,19 @@ function MealCard({ m, date }: { m: Meal; date: number }) {
         <>
           <ul className="flex flex-col">
             {m.dishes.map((dd, i) => (
-              <li key={i} data-dish className="flex items-center gap-2 border-b border-fg/[0.06] py-1 last:border-b-0">
-                <DishField value={dd.name} label="Dish" className="min-w-0 flex-1" onCommit={(v) => setDishes(v.trim() ? m.dishes.map((x, j) => (j === i ? { ...x, name: v.trim() } : x)) : m.dishes.filter((_, j) => j !== i))} />
+              <li key={i} data-dish className="flex items-start gap-2 border-b border-fg/[0.06] py-1 last:border-b-0">
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <DishField value={dd.name} label="Dish" placeholder="What was it? e.g. 카페라떼 핫 한 잔" autoFocus={!dd.name} commitEmpty className="w-full" onCommit={(v) => rename(i, v)} />
+                  {estimating.has(`${m.id}|${dd.name}`) ? (
+                    <span data-dish-looking className="animate-pulse text-[11.5px] text-fg/45">Looking up calories…</span>
+                  ) : (
+                    (dd.amount || dd.basis) && (
+                      <span data-dish-basis className="text-[11.5px] leading-snug text-fg/45">
+                        {[dd.amount, dd.basis].filter(Boolean).join(" · ")}
+                      </span>
+                    )
+                  )}
+                </span>
                 <DishField
                   value={dd.kcal === null ? "" : String(dd.kcal)}
                   label="Calories"
@@ -312,7 +368,7 @@ function MealCard({ m, date }: { m: Meal; date: number }) {
             ))}
           </ul>
           <div className="mt-1.5 flex items-center gap-3 px-1">
-            <button data-add-dish onClick={() => setDishes([...m.dishes, { name: "New dish", kcal: null }])} className="text-[12.5px] font-medium text-fg/65 hover:text-fg">
+            <button data-add-dish onClick={() => setDishes([...m.dishes, { name: "", kcal: null, added: true }])} className="text-[12.5px] font-medium text-fg/65 hover:text-fg">
               + Dish
             </button>
             {m.photos.length > 0 && (
@@ -339,7 +395,26 @@ function MealCard({ m, date }: { m: Meal; date: number }) {
 }
 
 /** A dish's name or calories, edited in place (written on Enter or when leaving the field). */
-function DishField({ value, label, numeric, className, onCommit }: { value: string; label: string; numeric?: boolean; className?: string; onCommit: (v: string) => void }) {
+function DishField({
+  value,
+  label,
+  numeric,
+  placeholder,
+  autoFocus,
+  commitEmpty,
+  className,
+  onCommit,
+}: {
+  value: string;
+  label: string;
+  numeric?: boolean;
+  placeholder?: string;
+  autoFocus?: boolean;
+  /** Commit an empty field even when unchanged (an empty new row goes away). */
+  commitEmpty?: boolean;
+  className?: string;
+  onCommit: (v: string) => void;
+}) {
   const [v, setV] = useState(value);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -355,7 +430,9 @@ function DishField({ value, label, numeric, className, onCommit }: { value: stri
         if (e.nativeEvent.isComposing) return;
         if (e.key === "Enter") e.currentTarget.blur();
       }}
-      onBlur={() => v !== value && onCommit(v)}
+      placeholder={placeholder}
+      autoFocus={autoFocus}
+      onBlur={() => (v !== value || (commitEmpty && !v.trim())) && onCommit(v)}
       className={cx("bg-transparent py-0.5 text-[14px] outline-none tabular focus:text-fg", className)}
     />
   );

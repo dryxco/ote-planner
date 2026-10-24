@@ -107,33 +107,53 @@ try {
   await page.screenshot({ path: `${shots}/meals-day.png`, fullPage: true });
   console.log("ok - photos split into meals by time, uploaded, and read (dishes + kcal filled in)");
 
-  // 2) fixed by hand: a dish's calories, a new dish, the kind, a photo removed
+  // 2) fixed by hand: a dish's calories, the kind, a photo removed
   const first = page.locator(`[data-meal="${meals[0].id}"]`);
   const kcalField = first.locator('[data-dish] input[aria-label="Calories"]').nth(1);
   await kcalField.fill("250");
   await kcalField.press("Enter");
-  await first.locator("[data-add-dish]").click();
-  const name = first.locator('[data-dish] input[aria-label="Dish"]').nth(2);
-  await name.fill("계란말이");
-  await name.press("Enter");
-  await first.locator('[data-dish] input[aria-label="Calories"]').nth(2).fill("150");
-  await first.locator('[data-dish] input[aria-label="Calories"]').nth(2).press("Enter");
   await page.locator(`[data-meal="${meals[1].id}"] [data-meal-kind]`).selectOption("dinner");
   await first.getByRole("button", { name: "Remove photo" }).first().click();
   await page.waitForTimeout(300);
   st = await store(page);
-  const m0 = st.meals.find((m) => m.id === meals[0].id);
-  assert.deepEqual(m0.dishes, [{ name: "김치찌개", kcal: 420 }, { name: "공기밥", kcal: 250 }, { name: "계란말이", kcal: 150 }]);
+  let m0 = st.meals.find((m) => m.id === meals[0].id);
+  assert.deepEqual(m0.dishes, [{ name: "김치찌개", kcal: 420 }, { name: "공기밥", kcal: 250 }]);
   assert.equal(m0.photos.length, 1);
   assert.equal(st.meals.find((m) => m.id === meals[1].id).kind, "dinner");
-  assert.match(await first.locator("[data-meal-kcal]").textContent(), /820 kcal/);
-  console.log("ok - dishes, calories, kind and photos can be fixed by hand");
+  console.log("ok - calories, kind and photos can be fixed by hand");
+
+  // 2b) + Dish: type what it was; its amount and calories are looked up (canned: 1개, 111 kcal)
+  await first.locator("[data-add-dish]").click();
+  const name = first.locator('[data-dish] input[aria-label="Dish"]').nth(2);
+  assert.equal(await name.evaluate((el) => el === document.activeElement), true, "the new row is ready to type in");
+  await name.fill("카페라떼 핫 한 잔");
+  await name.press("Enter");
+  await first.locator("[data-dish-basis]", { hasText: "1개 · test" }).waitFor();
+  m0 = (await store(page)).meals.find((m) => m.id === meals[0].id);
+  assert.deepEqual(m0.dishes[2], { name: "카페라떼 핫 한 잔", amount: "1개", kcal: 111, basis: "test", added: true });
+  assert.match(await first.locator("[data-meal-kcal]").textContent(), /781 kcal/);
+  // an empty new row left alone goes away
+  await first.locator("[data-add-dish]").click();
+  await page.locator("[data-meals-date]").click();
+  await page.waitForTimeout(200);
+  assert.equal((await store(page)).meals.find((m) => m.id === meals[0].id).dishes.length, 3);
+  console.log("ok - a dish typed in gets its calories looked up");
+
+  // 2c) Read again: what came from the photos is read anew; what was typed in stays
+  await first.locator("[data-meal-reread]").click();
+  await page.waitForFunction((id) => {
+    const m = JSON.parse(localStorage.getItem("sync-store-v1")).state.meals.find((x) => x.id === id);
+    return m.status === "done" && m.dishes[1].kcal === 300;
+  }, meals[0].id);
+  m0 = (await store(page)).meals.find((m) => m.id === meals[0].id);
+  assert.deepEqual(m0.dishes.map((d) => d.name), ["김치찌개", "공기밥", "카페라떼 핫 한 잔"], "the typed-in dish is kept");
+  console.log("ok - Read again keeps the dishes typed in by hand");
 
   // 3) it's on the server (synced)
   await page.waitForTimeout(1500);
   const onServer = (await api("/api/sync", { since: 0, changes: [] })).json.changes.filter((c) => c.col === "meals" && !c.deleted);
   assert.equal(onServer.length, 2, "both meals synced");
-  assert.equal(onServer.find((c) => c.id === meals[0].id).data.dishes.length, 3);
+  assert.equal(onServer.find((c) => c.id === meals[0].id).data.dishes.length, 3, "with the typed-in one");
   console.log("ok - meals sync to the server");
 
   // 4) share: one picture of the day (1080 wide), saved / shared as a PNG

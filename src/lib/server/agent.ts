@@ -85,7 +85,7 @@ export async function runAgent(history: AgentTurn[], context: unknown, images: A
  * One headless `claude -p` call on this computer's Claude Code login (no tools, no project settings), with
  * `input` as one stream-json user message; returns the structured output for `schema`.
  */
-export async function askClaude(o: { input: string; schema: string; system: string; cwd: string; model: string; timeoutMs?: number }): Promise<unknown> {
+export async function askClaude(o: { input: string; schema: string; system: string; cwd: string; model: string; timeoutMs?: number; tools?: string[] }): Promise<unknown> {
   const out = await run(
     claudeBin(),
     [
@@ -95,7 +95,9 @@ export async function askClaude(o: { input: string; schema: string; system: stri
       "--verbose",
       "--json-schema", o.schema,
       "--system-prompt", o.system,
-      "--tools", "",
+      // no tools unless asked for (the meal reader looks nutrition up with WebSearch, nothing else)
+      "--tools", (o.tools ?? []).join(","),
+      ...(o.tools?.length ? ["--allowedTools", ...o.tools] : []),
       "--setting-sources", "",
       "--strict-mcp-config",
       "--disable-slash-commands",
