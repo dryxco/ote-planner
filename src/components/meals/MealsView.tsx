@@ -209,8 +209,7 @@ function MealCard({ m, date }: { m: Meal; date: number }) {
   const t = new Date(m.at);
   const setDishes = (dishes: Meal["dishes"]) => updateMeal(m.id, { dishes });
   return (
-    <section data-meal={m.id} className="relative overflow-hidden rounded-[16px] bg-surface p-3 pl-4 ring-1 ring-fg/[0.06]">
-      <span aria-hidden className="absolute inset-y-0 left-0 w-[3px]" style={{ background: kindColor(m.kind) }} />
+    <section data-meal={m.id} className="rounded-[16px] bg-surface p-3 ring-1 ring-fg/[0.06]">
       <div className="mb-2.5 flex items-center gap-2">
         <select
           data-meal-kind
