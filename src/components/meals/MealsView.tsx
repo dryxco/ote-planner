@@ -58,6 +58,23 @@ async function readMeal(id: string) {
   }
 }
 
+/**
+ * A photo taken out of a meal takes what was read from it along: the photos left are read again (what
+ * was typed in by hand stays), and with none left only the typed-in dishes remain.
+ */
+async function removePhoto(id: string, photo: string) {
+  const { meals, updateMeal } = useSync.getState();
+  const m = meals.find((x) => x.id === id);
+  if (!m) return;
+  const photos = m.photos.filter((x) => x !== photo);
+  if (photos.length) {
+    updateMeal(id, { photos });
+    await readMeal(id);
+  } else {
+    updateMeal(id, { photos, dishes: m.dishes.filter((d) => d.added), status: "done", error: undefined });
+  }
+}
+
 /** Readings that were cut off (dropped, or left "reading" by a closed page): read again. */
 export function resumeReadings(now = Date.now()) {
   for (const m of useSync.getState().meals ?? []) {
@@ -277,7 +294,7 @@ function MealCard({ m, date }: { m: Meal; date: number }) {
             <img src={p} alt="" onClick={() => setBig(p)} className="h-[96px] w-[96px] cursor-zoom-in rounded-[12px] object-cover" />
             <button
               aria-label="Remove photo"
-              onClick={() => updateMeal(m.id, { photos: m.photos.filter((x) => x !== p) })}
+              onClick={() => void removePhoto(m.id, p)}
               className="absolute right-1 top-1 flex h-[20px] w-[20px] items-center justify-center rounded-full bg-black/55 text-white"
             >
               <XIcon size={9} />
@@ -336,7 +353,15 @@ function MealCard({ m, date }: { m: Meal; date: number }) {
                     setDishes(m.dishes.map((x, j) => (j === i ? { ...x, kcal: n } : x)));
                   }}
                 />
-                <span className="text-[12px] text-fg/40">kcal</span>
+                <span className="mt-[4px] text-[12px] text-fg/40">kcal</span>
+                <button
+                  data-dish-delete
+                  aria-label={`Remove ${dd.name || "dish"}`}
+                  onClick={() => setDishes(m.dishes.filter((_, j) => j !== i))}
+                  className="-mr-1 flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-fg/35 hover:bg-fg/[0.07] hover:text-fg"
+                >
+                  <XIcon size={10} />
+                </button>
               </li>
             ))}
           </ul>

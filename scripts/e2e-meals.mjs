@@ -107,13 +107,21 @@ try {
   await page.screenshot({ path: `${shots}/meals-day.png`, fullPage: true });
   console.log("ok - photos split into meals by time, uploaded, and read (dishes + kcal filled in)");
 
-  // 2) fixed by hand: a dish's calories, the kind, a photo removed
+  // 2) a photo removed: the photos left are read again (nothing from the removed one stays)
   const first = page.locator(`[data-meal="${meals[0].id}"]`);
+  let reads = 0;
+  page.on("request", (r) => r.url().includes("/api/meals/read") && reads++);
+  await first.getByRole("button", { name: "Remove photo" }).first().click();
+  await page.waitForFunction((id) => {
+    const m = JSON.parse(localStorage.getItem("sync-store-v1")).state.meals.find((x) => x.id === id);
+    return m.photos.length === 1 && m.status === "done";
+  }, meals[0].id);
+  assert.equal(reads, 1, "the photo left is read again");
+  // then fixed by hand: a dish's calories, the kind
   const kcalField = first.locator('[data-dish] input[aria-label="Calories"]').nth(1);
   await kcalField.fill("250");
   await kcalField.press("Enter");
   await page.locator(`[data-meal="${meals[1].id}"] [data-meal-kind]`).selectOption("dinner");
-  await first.getByRole("button", { name: "Remove photo" }).first().click();
   await page.waitForTimeout(300);
   st = await store(page);
   let m0 = st.meals.find((m) => m.id === meals[0].id);
@@ -148,6 +156,27 @@ try {
   m0 = (await store(page)).meals.find((m) => m.id === meals[0].id);
   assert.deepEqual(m0.dishes.map((d) => d.name), ["김치찌개", "공기밥", "카페라떼 핫 한 잔"], "the typed-in dish is kept");
   console.log("ok - Read again keeps the dishes typed in by hand");
+
+  // 2d) a dish's × removes it (on the other meal, so breakfast keeps its photo for the share below)
+  const second = page.locator(`[data-meal="${meals[1].id}"]`);
+  await second.getByRole("button", { name: "Remove 공기밥" }).click();
+  await page.waitForTimeout(200);
+  let m1 = (await store(page)).meals.find((m) => m.id === meals[1].id);
+  assert.deepEqual(m1.dishes.map((d) => d.name), ["김치찌개"]);
+  console.log("ok - a dish's × removes it");
+
+  // 2e) its last photo removed: what was read from it goes, a dish typed in stays
+  await second.locator("[data-add-dish]").click();
+  const water = second.locator('[data-dish] input[aria-label="Dish"]').nth(1);
+  await water.fill("보리차 한 잔");
+  await water.press("Enter");
+  await second.locator("[data-dish-basis]", { hasText: "test" }).waitFor();
+  await second.getByRole("button", { name: "Remove photo" }).click();
+  await page.waitForTimeout(300);
+  m1 = (await store(page)).meals.find((m) => m.id === meals[1].id);
+  assert.equal(m1.photos.length, 0);
+  assert.deepEqual(m1.dishes.map((d) => d.name), ["보리차 한 잔"], "only the typed-in dish is left");
+  console.log("ok - with its last photo gone, a meal keeps only what was typed in");
 
   // 3) it's on the server (synced)
   await page.waitForTimeout(1500);
