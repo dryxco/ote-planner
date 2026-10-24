@@ -1,6 +1,8 @@
 "use client";
 
-import type { CalendarInfo, Plan, Repeat } from "./types";
+import type { CalendarInfo, Dish, MealKind, Plan, Repeat } from "./types";
+import { MEAL_KINDS, kindAt, mealKcal } from "./meals";
+import { estimateDish } from "./meal-lookup";
 import { loadWritableCalendars } from "./writable-calendars";
 import { OTHER_ID, activityOf, useSync } from "./store";
 import { useUI } from "./ui";
@@ -25,7 +27,12 @@ export type AgentOp =
   | { op: "add_activity"; name: string; color: string }
   | { op: "update_activity"; id: string; name?: string; color?: string }
   | { op: "delete_activity"; id: string }
-  | { op: "go_to_date"; date: string };
+  | { op: "go_to_date"; date: string }
+  | { op: "add_meal"; at: string; kind?: MealKind; dishes?: { name: string; amount?: string; kcal?: number | null }[] }
+  | { op: "update_meal"; id: string; at?: string; kind?: MealKind }
+  | { op: "delete_meal"; id: string }
+  | { op: "set_dish"; meal_id: string; index?: number; name?: string; amount?: string; kcal?: number | null }
+  | { op: "delete_dish"; meal_id: string; index: number };
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const ymd = (t: number) => {
@@ -109,7 +116,26 @@ export function agentContext() {
         deadline: t.deadline !== undefined ? ymd(t.deadline) : undefined,
       })),
     timer: s.timer ? { name: s.timer.name, activity: act(s.timer.activityId), since: local(s.timer.start) } : null,
+    // the Meals tab: two weeks around the viewed day (dishes by index, kcal null = not known)
+    meals: (s.meals ?? [])
+      .filter((m) => m.at > addDays(date, -14) && m.at < addDays(date, 2))
+      .sort((a, b) => a.at - b.at)
+      .map((m) => ({ id: m.id, at: local(m.at), kind: m.kind, kcal_total: mealKcal(m), dishes: m.dishes.map((d, index) => ({ index, name: d.name, amount: d.amount, kcal: d.kcal })) })),
   };
+}
+
+/** A dish the agent set: kept as typed in by hand (Read again keeps it); a number given is the user's. */
+function dishOf(name: string, amount: string | undefined, kcal: number | null | undefined, basis?: string): Dish {
+  const k = typeof kcal === "number" && Number.isFinite(kcal) && kcal >= 0 && kcal <= 5000 ? Math.round(kcal) : null;
+  const d: Dish = { name: name.trim().slice(0, 80), kcal: k, added: true };
+  if (amount?.trim()) d.amount = amount.trim().slice(0, 40);
+  if (k !== null) d.basis = basis ?? "직접 입력";
+  return d;
+}
+
+/** Dishes without a number get theirs looked up on the web, as on the Meals tab. */
+function lookUp(mealId: string, dishes: Dish[]) {
+  for (const d of dishes) if (d.kcal === null) void estimateDish(mealId, d.name, undefined, d.amount ? `${d.name} ${d.amount}` : d.name);
 }
 
 /** Apply the agent's operations. Returns one line per op (✓ done / ✗ skipped with the reason). */
@@ -273,6 +299,52 @@ function applyOne(op: AgentOp): string {
       if (a.id === OTHER_ID) throw new Error(`"Other" can't be deleted`);
       s.deleteActivity(a.id);
       return `deleted activity "${a.name}"`;
+    }
+    case "add_meal": {
+      const at = parseLocal(op.at);
+      const kind = op.kind && MEAL_KINDS.some((k) => k.id === op.kind) ? op.kind : kindAt(at);
+      const dishes = (op.dishes ?? []).filter((d) => d?.name?.trim()).slice(0, 20).map((d) => dishOf(d.name, d.amount, d.kcal));
+      const id = s.addMeal({ at, kind, photos: [], dishes, status: "done" });
+      lookUp(id, dishes);
+      return `meal at ${op.at}${dishes.length ? ` (${dishes.map((d) => d.name).join(", ")})` : ""}`;
+    }
+    case "update_meal": {
+      const m = need((s.meals ?? []).find((x) => x.id === op.id), `meal ${op.id}`);
+      const patch: { at?: number; kind?: MealKind } = {};
+      if (op.at) patch.at = parseLocal(op.at);
+      if (op.kind) {
+        if (!MEAL_KINDS.some((k) => k.id === op.kind)) throw new Error(`no meal kind "${op.kind}"`);
+        patch.kind = op.kind;
+      }
+      s.updateMeal(m.id, patch);
+      return `updated the ${m.kind} meal`;
+    }
+    case "delete_meal": {
+      const m = need((s.meals ?? []).find((x) => x.id === op.id), `meal ${op.id}`);
+      s.deleteMeal(m.id);
+      return `deleted the ${m.kind} meal`;
+    }
+    case "set_dish": {
+      const m = need((s.meals ?? []).find((x) => x.id === op.meal_id), `meal ${op.meal_id}`);
+      const at = op.index === undefined || op.index === null ? -1 : op.index;
+      if (at >= m.dishes.length) throw new Error(`no dish ${at} in that meal`);
+      const cur = at >= 0 ? m.dishes[at] : undefined;
+      const name = op.name?.trim() || cur?.name;
+      if (!name) throw new Error("a new dish needs a name");
+      // a new name or amount without a number: its calories are looked up again
+      const changed = !cur || name !== cur.name || (op.amount !== undefined && op.amount !== cur.amount);
+      const kcal = op.kcal !== undefined ? op.kcal : changed ? null : cur!.kcal;
+      const d = dishOf(name, op.amount ?? cur?.amount, kcal, kcal === cur?.kcal ? cur?.basis : undefined);
+      const dishes = at >= 0 ? m.dishes.map((x, j) => (j === at ? d : x)) : [...m.dishes, d];
+      s.updateMeal(m.id, { dishes });
+      lookUp(m.id, [d]);
+      return `${cur ? "updated" : "added"} "${name}"${d.kcal === null ? " (looking up its calories)" : ` (${d.kcal} kcal)`}`;
+    }
+    case "delete_dish": {
+      const m = need((s.meals ?? []).find((x) => x.id === op.meal_id), `meal ${op.meal_id}`);
+      const d = need(m.dishes[op.index], `dish ${op.index}`);
+      s.updateMeal(m.id, { dishes: m.dishes.filter((_, j) => j !== op.index) });
+      return `removed "${d.name}"`;
     }
     case "go_to_date": {
       useUI.getState().setDate(parseDate(op.date));

@@ -7,7 +7,8 @@ import { useNow } from "@/lib/hooks";
 import { useIsDesktop } from "@/lib/media";
 import { WEEKDAY_SHORT, addDays, logicalDate, pad2 } from "@/lib/time";
 import { MEAL_KINDS, dayKcal, groupByTime, kindAt, kindColor, mealKcal, mealsOn, timeOn } from "@/lib/meals";
-import { estimate, readPhotos, uploadPhoto } from "@/lib/meal-photos";
+import { readPhotos, uploadPhoto } from "@/lib/meal-photos";
+import { estimateDish, estimating, tried } from "@/lib/meal-lookup";
 import { ChevronLeft, ChevronRight, PlusIcon, XIcon } from "../icons";
 import { TabHeader } from "../period";
 import { Footnote, Group, Row, Sheet, cx } from "../ui";
@@ -54,34 +55,6 @@ async function readMeal(id: string) {
     }
   } finally {
     reading.delete(id);
-  }
-}
-
-/** Dishes being looked up right now ("meal id|name"), and ones tried this session (not tried again on every render). */
-const estimating = new Set<string>();
-const tried = new Set<string>();
-
-/** A dish typed in by hand: its amount and calories looked up and filled in (it stays "added"). */
-async function estimateDish(mealId: string, name: string, onChange: () => void) {
-  const key = `${mealId}|${name}`;
-  if (estimating.has(key)) return;
-  estimating.add(key);
-  tried.add(key);
-  onChange();
-  try {
-    const d = await estimate(name);
-    const { meals, updateMeal } = useSync.getState();
-    const m = meals.find((x) => x.id === mealId);
-    if (!m) return;
-    // the dish may have moved or been renamed meanwhile: fill in the one that still has this name
-    const i = m.dishes.findIndex((x) => x.name === name && x.kcal === null);
-    if (i < 0) return;
-    updateMeal(mealId, { dishes: m.dishes.map((x, j) => (j === i ? { name, amount: d.amount, kcal: d.kcal, basis: d.basis, added: true } : x)) });
-  } catch {
-    // leaves it without calories; typing them in still works
-  } finally {
-    estimating.delete(key);
-    onChange();
   }
 }
 
