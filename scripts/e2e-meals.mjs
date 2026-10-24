@@ -198,20 +198,22 @@ try {
     return Array.from(new Uint8Array(await r.arrayBuffer())).slice(0, 4);
   });
   assert.deepEqual(card, [0x89, 0x50, 0x4e, 0x47], "a PNG");
-  // breakfast's photo is portrait now (the first one was removed): it stays in its box, the text
-  // area under it is the white card, and the meal's time is on it
-  const under = await preview.evaluate(async (img) => {
+  // a timeline: the first meal's coloured dot on the rail at the left, its card to the right; the
+  // breakfast photo (portrait now: the first one was removed) cropped square in its own box, the white
+  // card right beside it
+  const px3 = await preview.evaluate(async (img) => {
     const c = document.createElement("canvas");
     c.width = img.naturalWidth;
     c.height = img.naturalHeight;
     const g = c.getContext("2d");
     g.drawImage(img, 0, 0);
     const px = (x, y) => Array.from(g.getImageData(x, y, 1, 1).data.slice(0, 3));
-    return { belowPhoto: px(290, 236 + 344 + 14), inPhoto: px(290, 236 + 150) };
+    return { dot: px(184, 288), inPhoto: px(342, 430), besidePhoto: px(452, 430), h: img.naturalHeight };
   });
   const near = (a, b) => a.every((v, i) => Math.abs(v - b[i]) <= 4); // the photo went through JPEG
-  assert.ok(near(under.belowPhoto, [255, 255, 255]), `white under the photo, not the photo (${under.belowPhoto})`);
-  assert.ok(near(under.inPhoto, [240, 200, 80]), `the photo itself above (${under.inPhoto})`);
+  assert.ok(near(px3.dot, [0xc9, 0x97, 0x3b]), `breakfast's dot on the rail (${px3.dot})`);
+  assert.ok(near(px3.inPhoto, [240, 200, 80]), `the photo itself (${px3.inPhoto})`);
+  assert.ok(near(px3.besidePhoto, [255, 255, 255]), `white beside the photo, not the photo (${px3.besidePhoto})`);
   const [download] = await Promise.all([page.waitForEvent("download"), page.locator("[data-share-save]").click()]);
   assert.match(download.suggestedFilename(), /^meals-\d{8}\.png$/);
   await download.saveAs(`${shots}/${download.suggestedFilename()}`);

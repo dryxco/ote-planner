@@ -6,22 +6,30 @@ import { MEAL_KINDS, mealKcal } from "@/lib/meals";
 /**
  * One picture of a day's meals to share (KakaoTalk, save to Photos), drawn like the app's own light
  * screens: a grey page, white rounded cards, black / grey text, each meal's tinted name pill. The date
- * and the day's calories on top, then breakfast / lunch / dinner / snack, each its first photo and
- * what was in it (dish and kcal per line, like the meal card).
+ * and the day's calories on top, then the day as a timeline: a rail on the left with each meal's time
+ * and dot (spaced by how far apart the meals were), and on the right its card — its photo and every
+ * dish with its kcal. The picture grows as long as the day needs, so nothing is cut off.
  */
 const W = 1080;
 const PAD = 48;
-const GAP = 24;
-const TILE = (W - PAD * 2 - GAP) / 2;
-const PHOTO_H = 344;
-/** Under the photo: the pill row, then up to three dish lines and the card's bottom padding. */
-const ROW = 52;
-const TILE_H = PHOTO_H + 28 + 104 + 2 * ROW + 40;
 const TOP = 236;
-const H = TOP + TILE_H * 2 + GAP + 104;
 const R = 32;
+/** The rail: times right-aligned before it, cards after it. */
+const TIME_R = PAD + 112;
+const RAIL_X = PAD + 136;
+const CARD_X = RAIL_X + 32;
+const CARD_W = W - PAD - CARD_X;
+const IN = 28;
+const HEAD = 48;
+const THUMB = 196;
+const ROW = 50;
+/** Between two meals: a base gap, plus more the longer apart they were (up to a cap). */
+const GAP = 24;
+const GAP_PER_HOUR = 28;
+const GAP_MAX = 120;
+const BOTTOM = 104;
 
-const SLOTS: { kind: MealKind; label: string; color: string }[] = MEAL_KINDS.map((k) => ({ kind: k.id, label: k.ko, color: k.color }));
+const KINDS = new Map<MealKind, { label: string; color: string }>(MEAL_KINDS.map((k) => [k.id, { label: k.ko, color: k.color }]));
 // the app's light theme (globals.css): --bg, --surface, --surface-0, text and its 55% / 28% greys
 const BG = "#ebebeb";
 const CARD = "#ffffff";
@@ -76,7 +84,24 @@ function pill(g: CanvasRenderingContext2D, x: number, y: number, label: string, 
   return w;
 }
 
-export async function dayCard(date: number, meals: Meal[]): Promise<Blob> {
+/** A meal card's height: its pill row, then the photo beside its dishes (whichever is taller). */
+function cardHeight(m: Meal): number {
+  const rows = Math.max(1, m.dishes.length) * ROW;
+  return IN + HEAD + 20 + Math.max(m.photos.length ? THUMB : 0, rows) + IN - 8;
+}
+
+export async function dayCard(date: number, all: Meal[]): Promise<Blob> {
+  const meals = [...all].sort((a, b) => a.at - b.at);
+  // where each card goes: one under the other, further apart the longer between them
+  const ys: number[] = [];
+  let y = TOP;
+  meals.forEach((m, i) => {
+    if (i) y += GAP + Math.min(GAP_MAX, ((m.at - meals[i - 1].at) / 3_600_000) * GAP_PER_HOUR);
+    ys.push(y);
+    y += cardHeight(m);
+  });
+  const H = (meals.length ? y : TOP + 120) + BOTTOM;
+
   const c = document.createElement("canvas");
   c.width = W;
   c.height = H;
@@ -109,84 +134,112 @@ export async function dayCard(date: number, meals: Meal[]): Promise<Blob> {
     g.textAlign = "left";
   }
 
-  for (let i = 0; i < SLOTS.length; i++) {
-    const s = SLOTS[i];
-    const x = PAD + (i % 2) * (TILE + GAP);
-    const y = TOP + Math.floor(i / 2) * (TILE_H + GAP);
-    const mine = meals.filter((m) => m.kind === s.kind);
-    // the card, its photo filling the top (cropped), like a meal card's thumbnail grown up
-    g.save();
-    rounded(g, x, y, TILE, TILE_H, R);
+  if (!meals.length) {
+    g.fillStyle = TEXT_3;
+    g.font = `400 30px ${FONT}`;
+    g.fillText("기록 없음", PAD, TOP + 60);
+  }
+
+  // the rail, from the first meal's dot to the last's
+  const dotY = (i: number) => ys[i] + IN + HEAD / 2;
+  if (meals.length > 1) {
+    g.fillStyle = LINE;
+    g.fillRect(RAIL_X - 2, dotY(0), 4, dotY(meals.length - 1) - dotY(0));
+  }
+
+  for (let i = 0; i < meals.length; i++) {
+    const m = meals[i];
+    const kind = KINDS.get(m.kind) ?? { label: m.kind, color: "#888888" };
+    const cy = ys[i];
+    const ch = cardHeight(m);
+
+    // its time and dot on the rail
+    g.fillStyle = TEXT;
+    g.font = `600 30px ${FONT}`;
+    g.textAlign = "right";
+    g.fillText(hm(m.at), TIME_R, dotY(i) + 11);
+    g.textAlign = "left";
+    g.beginPath();
+    g.arc(RAIL_X, dotY(i), 11, 0, Math.PI * 2);
+    g.fillStyle = BG;
+    g.fill();
+    g.beginPath();
+    g.arc(RAIL_X, dotY(i), 8, 0, Math.PI * 2);
+    g.fillStyle = kind.color;
+    g.fill();
+
+    // the card: the meal's pill and its calories
+    rounded(g, CARD_X, cy, CARD_W, ch, R);
     g.fillStyle = CARD;
     g.fill();
-    g.clip();
-    const bmp = mine[0]?.photos[0] ? await load(mine[0].photos[0]) : null;
-    // the photo stays in its own box: a tall (portrait) one is cropped there, never over the text below
-    g.beginPath();
-    g.rect(x, y, TILE, PHOTO_H);
-    g.clip();
-    if (bmp) {
-      const k = Math.max(TILE / bmp.width, PHOTO_H / bmp.height);
-      const w = bmp.width * k;
-      const h = bmp.height * k;
-      g.drawImage(bmp, x + (TILE - w) / 2, y + (PHOTO_H - h) / 2, w, h);
-      bmp.close();
-    } else {
-      g.fillStyle = EMPTY;
-      g.fillRect(x, y, TILE, PHOTO_H);
-    }
-    g.restore();
-
-    // the meal's pill and its calories, then a dish per line (name left, kcal right)
-    const ty = y + PHOTO_H + 28;
-    const pw = pill(g, x + 28, ty, s.label, s.color);
-    // when: each of its meals' times, after the pill
-    if (mine.length) {
-      g.fillStyle = TEXT_2;
-      g.font = `500 28px ${FONT}`;
-      const kcalRoom = 150;
-      g.fillText(fit(g, mine.map((m) => hm(m.at)).join(" · "), TILE - 56 - pw - 16 - kcalRoom), x + 28 + pw + 16, ty + 34);
-    }
-    const kcal = mine.reduce((sum, m) => sum + (mealKcal(m) ?? 0), 0);
+    const ty = cy + IN;
+    pill(g, CARD_X + IN, ty, kind.label, kind.color);
+    const kcal = mealKcal(m);
     if (kcal) {
       g.fillStyle = TEXT;
       g.font = `600 30px ${FONT}`;
       g.textAlign = "right";
-      g.fillText(`${kcal.toLocaleString()} kcal`, x + TILE - 28, ty + 35);
+      g.fillText(`${kcal.toLocaleString()} kcal`, CARD_X + CARD_W - IN, ty + 35);
       g.textAlign = "left";
     }
-    const dishes = mine.flatMap((m) => m.dishes);
-    if (!dishes.length) {
+
+    // its first photo (cropped square; how many more there are on it), then every dish beside it
+    const by = ty + HEAD + 20;
+    let lx = CARD_X + IN;
+    if (m.photos.length) {
+      const bmp = await load(m.photos[0]);
+      g.save();
+      rounded(g, lx, by, THUMB, THUMB, 20);
+      g.clip();
+      if (bmp) {
+        const k = Math.max(THUMB / bmp.width, THUMB / bmp.height);
+        const w = bmp.width * k;
+        const h = bmp.height * k;
+        g.drawImage(bmp, lx + (THUMB - w) / 2, by + (THUMB - h) / 2, w, h);
+        bmp.close();
+      } else {
+        g.fillStyle = EMPTY;
+        g.fillRect(lx, by, THUMB, THUMB);
+      }
+      if (m.photos.length > 1) {
+        g.font = `600 24px ${FONT}`;
+        const t = `+${m.photos.length - 1}`;
+        const tw = g.measureText(t).width + 20;
+        rounded(g, lx + THUMB - tw - 10, by + THUMB - 46, tw, 36, 18);
+        g.fillStyle = "rgba(0, 0, 0, 0.55)";
+        g.fill();
+        g.fillStyle = "#ffffff";
+        g.fillText(t, lx + THUMB - tw, by + THUMB - 19);
+      }
+      g.restore();
+      lx += THUMB + 28;
+    }
+    const lw = CARD_X + CARD_W - IN - lx;
+    if (!m.dishes.length) {
       g.fillStyle = TEXT_3;
       g.font = `400 28px ${FONT}`;
-      g.fillText(mine.length ? "메뉴 없음" : "기록 없음", x + 28, ty + 112);
+      g.fillText(m.status === "reading" ? "읽는 중" : "메뉴 없음", lx, by + 34);
       continue;
     }
-    const shown = dishes.length > 3 ? dishes.slice(0, 2) : dishes;
-    shown.forEach((dd, li) => {
-      const ly = ty + 104 + li * ROW;
+    m.dishes.forEach((dd, li) => {
+      const ly = by + 34 + li * ROW;
       // a hairline midway between this line and the one above
       if (li > 0) {
         g.fillStyle = LINE;
-        g.fillRect(x + 28, ly - ROW + 16, TILE - 56, 2);
+        g.fillRect(lx, ly - ROW + 14, lw, 2);
       }
       g.font = `400 28px ${FONT}`;
       const k = dd.kcal !== null ? dd.kcal.toLocaleString() : "";
       const kw = k ? g.measureText(k).width + 16 : 0;
       g.fillStyle = TEXT;
-      g.fillText(fit(g, dd.name, TILE - 56 - kw), x + 28, ly);
+      g.fillText(fit(g, dd.name, lw - kw), lx, ly);
       if (k) {
         g.fillStyle = TEXT_2;
         g.textAlign = "right";
-        g.fillText(k, x + TILE - 28, ly);
+        g.fillText(k, lx + lw, ly);
         g.textAlign = "left";
       }
     });
-    if (dishes.length > 3) {
-      g.fillStyle = TEXT_2;
-      g.font = `400 26px ${FONT}`;
-      g.fillText(`외 ${dishes.length - 2}개`, x + 28, ty + 104 + 2 * ROW);
-    }
   }
 
   g.fillStyle = TEXT_3;
