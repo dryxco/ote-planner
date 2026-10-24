@@ -10,7 +10,7 @@ import { MEAL_KINDS, dayKcal, groupByTime, kindAt, kindColor, mealKcal, mealsOn,
 import { estimate, readPhotos, uploadPhoto } from "@/lib/meal-photos";
 import { ChevronLeft, ChevronRight, PlusIcon, XIcon } from "../icons";
 import { TabHeader } from "../period";
-import { cx } from "../ui";
+import { Footnote, Group, Row, Sheet, cx } from "../ui";
 import { dayCard } from "./day-card";
 
 const images = (list: FileList | null | undefined) => [...(list ?? [])].filter((f) => f.type.startsWith("image/") || /\.(heic|heif)$/i.test(f.name));
@@ -462,11 +462,6 @@ function ShareSheet({ date, meals, onClose }: { date: number; meals: Meal[]; onC
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, key]);
-  useEffect(() => {
-    const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
-  }, [onClose]);
   const canShare = !!file && typeof navigator !== "undefined" && !!navigator.canShare?.({ files: [file] });
   const save = () => {
     if (!url || !file) return;
@@ -475,41 +470,28 @@ function ShareSheet({ date, meals, onClose }: { date: number; meals: Meal[]; onC
     a.download = file.name;
     a.click();
   };
+  // the phone's share sheet (KakaoTalk, Messages, Save Image…); without one (most computers) it saves
+  const send = () => {
+    if (!file) return;
+    if (canShare) navigator.share({ files: [file] }).catch(() => {});
+    else save();
+  };
   return (
-    <div data-share-sheet className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="animate-fade absolute inset-0 bg-black/55" onClick={onClose} />
-      <div className="animate-sheet relative flex max-h-[92dvh] w-full max-w-[440px] flex-col gap-3 rounded-t-[22px] bg-surface p-4 pb-[max(16px,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[22px]">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[16px] font-semibold">Share the day</h2>
-          <button aria-label="Close" onClick={onClose} className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-fg/55 hover:bg-fg/[0.07]">
-            <XIcon size={14} />
-          </button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-[14px] bg-fg/[0.04]">
+    <Sheet title="Share" cancelLabel="Close" onCancel={onClose} onSave={send} saveLabel={canShare ? "Share" : "Save"} saveDisabled={!file}>
+      <div data-share-sheet>
+        <div className="overflow-hidden rounded-[14px] bg-surface-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {url ? <img data-share-preview src={url} alt="The day's meals" className="w-full" /> : <div className="aspect-[1080/1504] animate-pulse" />}
+          {url ? <img data-share-preview src={url} alt="The day's meals" className="mx-auto max-h-[58dvh] w-auto max-w-full" /> : <div className="mx-auto aspect-[1080/1608] max-h-[58dvh] animate-pulse" />}
         </div>
-        {error && <p className="text-[12.5px] text-danger-soft">{error}</p>}
-        <div className="grid grid-cols-2 gap-2">
-          <button data-share-save disabled={!url} onClick={save} className="h-[46px] rounded-[12px] bg-fg/[0.07] text-[15px] font-medium disabled:opacity-40">
-            Save image
-          </button>
-          <button
-            data-share-send
-            disabled={!file}
-            onClick={() => {
-              if (!file) return;
-              // the phone's share sheet (KakaoTalk, Messages, Save Image…); computers without one save it
-              if (canShare) navigator.share({ files: [file] }).catch(() => {});
-              else save();
-            }}
-            className="h-[46px] rounded-[12px] bg-charcoal text-[15px] font-semibold text-on-charcoal disabled:opacity-40"
-          >
-            {canShare ? "Share…" : "Download"}
-          </button>
-        </div>
+        <Footnote>One picture of the day — breakfast, lunch, dinner and snack. Share sends it to KakaoTalk, Messages or Photos.</Footnote>
+        <Group>
+          <Row label="Save image" onClick={save} className={cx(!url && "pointer-events-none opacity-40")}>
+            <span data-share-save className="text-[13px] text-fg/45">PNG</span>
+          </Row>
+        </Group>
+        {error && <p className="mt-3 px-4 text-[12.5px] text-danger-soft">{error}</p>}
       </div>
-    </div>
+    </Sheet>
   );
 }
 
