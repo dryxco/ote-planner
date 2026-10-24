@@ -56,8 +56,14 @@ function fit(g: CanvasRenderingContext2D, s: string, w: number): string {
   return `${t}…`;
 }
 
-/** A meal's name as the app draws it: a pill tinted with its colour, the name in that colour. */
-function pill(g: CanvasRenderingContext2D, x: number, y: number, label: string, color: string) {
+/** "08:43" */
+const hm = (t: number) => {
+  const d = new Date(t);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+
+/** A meal's name as the app draws it: a pill tinted with its colour, the name in that colour (returns its width). */
+function pill(g: CanvasRenderingContext2D, x: number, y: number, label: string, color: string): number {
   g.font = `600 28px ${FONT}`;
   const w = g.measureText(label).width + 36;
   rounded(g, x, y, w, 48, 24);
@@ -67,6 +73,7 @@ function pill(g: CanvasRenderingContext2D, x: number, y: number, label: string, 
   g.globalAlpha = 1;
   g.fillStyle = color;
   g.fillText(label, x + 18, y + 34);
+  return w;
 }
 
 export async function dayCard(date: number, meals: Meal[]): Promise<Blob> {
@@ -114,6 +121,10 @@ export async function dayCard(date: number, meals: Meal[]): Promise<Blob> {
     g.fill();
     g.clip();
     const bmp = mine[0]?.photos[0] ? await load(mine[0].photos[0]) : null;
+    // the photo stays in its own box: a tall (portrait) one is cropped there, never over the text below
+    g.beginPath();
+    g.rect(x, y, TILE, PHOTO_H);
+    g.clip();
     if (bmp) {
       const k = Math.max(TILE / bmp.width, PHOTO_H / bmp.height);
       const w = bmp.width * k;
@@ -128,7 +139,14 @@ export async function dayCard(date: number, meals: Meal[]): Promise<Blob> {
 
     // the meal's pill and its calories, then a dish per line (name left, kcal right)
     const ty = y + PHOTO_H + 28;
-    pill(g, x + 28, ty, s.label, s.color);
+    const pw = pill(g, x + 28, ty, s.label, s.color);
+    // when: each of its meals' times, after the pill
+    if (mine.length) {
+      g.fillStyle = TEXT_2;
+      g.font = `500 28px ${FONT}`;
+      const kcalRoom = 150;
+      g.fillText(fit(g, mine.map((m) => hm(m.at)).join(" · "), TILE - 56 - pw - 16 - kcalRoom), x + 28 + pw + 16, ty + 34);
+    }
     const kcal = mine.reduce((sum, m) => sum + (mealKcal(m) ?? 0), 0);
     if (kcal) {
       g.fillStyle = TEXT;

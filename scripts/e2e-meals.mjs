@@ -93,7 +93,7 @@ try {
   const b64 = (c) => png(640, 480, c).toString("base64");
   await pickPhotos(page, "[data-meal-album-input]", [
     { name: "a.png", h: 8, m: 0, b64: b64([200, 90, 60]) },
-    { name: "b.png", h: 8, m: 20, b64: b64([240, 200, 80]) },
+    { name: "b.png", h: 8, m: 20, b64: png(480, 900, [240, 200, 80]).toString("base64") }, // portrait
     { name: "c.png", h: 12, m: 30, b64: b64([70, 160, 90]) },
   ]);
   await page.waitForFunction(() => document.querySelectorAll("[data-meal]").length === 2);
@@ -169,6 +169,20 @@ try {
     return Array.from(new Uint8Array(await r.arrayBuffer())).slice(0, 4);
   });
   assert.deepEqual(card, [0x89, 0x50, 0x4e, 0x47], "a PNG");
+  // breakfast's photo is portrait now (the first one was removed): it stays in its box, the text
+  // area under it is the white card, and the meal's time is on it
+  const under = await preview.evaluate(async (img) => {
+    const c = document.createElement("canvas");
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    const g = c.getContext("2d");
+    g.drawImage(img, 0, 0);
+    const px = (x, y) => Array.from(g.getImageData(x, y, 1, 1).data.slice(0, 3));
+    return { belowPhoto: px(290, 236 + 344 + 14), inPhoto: px(290, 236 + 150) };
+  });
+  const near = (a, b) => a.every((v, i) => Math.abs(v - b[i]) <= 4); // the photo went through JPEG
+  assert.ok(near(under.belowPhoto, [255, 255, 255]), `white under the photo, not the photo (${under.belowPhoto})`);
+  assert.ok(near(under.inPhoto, [240, 200, 80]), `the photo itself above (${under.inPhoto})`);
   const [download] = await Promise.all([page.waitForEvent("download"), page.locator("[data-share-save]").click()]);
   assert.match(download.suggestedFilename(), /^meals-\d{8}\.png$/);
   await download.saveAs(`${shots}/${download.suggestedFilename()}`);
