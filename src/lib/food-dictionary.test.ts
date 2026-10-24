@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { foodKey, foodsForPrompt, learnFoods, resolveDish, type Food } from "./food-dictionary";
+import { foodKey, foodsForPrompt, learnFoods, resolveDish, servingAsPiece, type Food } from "./food-dictionary";
 
 const butter: Food = { name: "해태 버터링 딥초코", per100g: 525, pieceGrams: 9, source: "해태 영양성분표", at: 1 };
 
@@ -56,4 +56,14 @@ test("new foods are learnt; one already known keeps its first figures", () => {
 test("the dictionary told to Claude, newest first", () => {
   const rice: Food = { name: "공기밥", per100g: 143, at: 9 };
   assert.equal(foodsForPrompt({ a: butter, b: rice }), "공기밥: 100g당 143kcal\n해태 버터링 딥초코: 100g당 525kcal, 낱개 9g");
+});
+
+test("a serving taken as one piece is caught (and looked up again); a real piece isn't", () => {
+  const wrong = { name: "해태 버터링 딥초코", amount: "1봉 (30g)", per100g: 525, grams: 30, pieces: null, pieceGrams: null, servingGrams: 30 };
+  assert.equal(servingAsPiece(wrong, {}), 1);
+  assert.equal(servingAsPiece({ ...wrong, amount: "1개 (30g)", pieces: 1, pieceGrams: 30 }, {}), 1);
+  assert.equal(servingAsPiece({ ...wrong, pieces: 1, pieceGrams: 8.6 }, {}), 0);
+  assert.equal(servingAsPiece({ ...wrong, servingGrams: null }, {}), 0);
+  assert.equal(servingAsPiece({ name: "공기밥", amount: "1공기 (210g)", grams: 210, servingGrams: 210 }, {}), 0);
+  assert.equal(servingAsPiece(wrong, { [foodKey(butter.name)]: butter }), 0);
 });

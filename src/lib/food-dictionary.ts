@@ -27,6 +27,8 @@ export interface RawDish {
   grams?: unknown;
   pieces?: unknown;
   pieceGrams?: unknown;
+  /** The label's serving ("1회 제공량") in grams, when Claude saw one. */
+  servingGrams?: unknown;
   source?: unknown;
 }
 
@@ -69,6 +71,23 @@ export function resolveDish(raw: RawDish, dict: Record<string, Food>): RawDish {
     kcal,
     basis: `${source ? `${source} ` : ""}100g당 ${fmt(per100g)}kcal × ${weight} = ${kcal}kcal`,
   };
+}
+
+/**
+ * A counted thing (a wrapped snack, "1개", "1봉") whose piece weighs exactly the label's serving: most
+ * likely a serving taken as one piece (a 30g serving of 8.6g cookies). Its piece weight is looked up
+ * again on its own. Returns how many pieces were counted (0: nothing to check). A food whose piece weight is in the dictionary already is fine.
+ */
+export function servingAsPiece(raw: RawDish, dict: Record<string, Food>): number {
+  const name = str(raw.name, 80);
+  if (!name || dict[foodKey(name)]?.pieceGrams) return 0;
+  const serving = num(raw.servingGrams, 5000);
+  if (!serving) return 0;
+  const pieces = num(raw.pieces, 100);
+  const counted = pieces ?? Number(str(raw.amount, 40)?.match(/^(\d+)\s*(개|봉지|봉|팩)/)?.[1] ?? 0);
+  if (!counted) return 0;
+  const piece = num(raw.pieceGrams, 2000) ?? (num(raw.grams, 5000) ?? 0) / counted;
+  return Math.abs(piece - serving) < 0.5 ? counted : 0;
 }
 
 /** New dictionary entries from a reading: foods not in it yet that came with a per-100g figure. */
