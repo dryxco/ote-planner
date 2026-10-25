@@ -157,6 +157,20 @@ try {
   assert.deepEqual(m0.dishes.map((d) => d.name), ["김치찌개", "공기밥", "카페라떼 핫 한 잔"], "the typed-in dish is kept");
   console.log("ok - Read again keeps the dishes typed in by hand");
 
+  // 2c') renaming a dish looks that dish (only) up again; a photo dish stays a photo dish
+  const rice = first.locator('[data-dish] input[aria-label="Dish"]').nth(1);
+  await rice.fill("현미밥");
+  await rice.press("Enter");
+  await page.waitForFunction((id) => {
+    const m = JSON.parse(localStorage.getItem("sync-store-v1")).state.meals.find((x) => x.id === id);
+    return m.dishes[1].name === "현미밥" && m.dishes[1].kcal === 111;
+  }, meals[0].id);
+  m0 = (await store(page)).meals.find((m) => m.id === meals[0].id);
+  assert.deepEqual(m0.dishes[1], { name: "현미밥", amount: "1개", kcal: 111, basis: "test" });
+  assert.deepEqual(m0.dishes[0], { name: "김치찌개", kcal: 420 }, "the other dishes are left alone");
+  assert.equal(m0.dishes[2].kcal, 111);
+  console.log("ok - a renamed dish gets its calories looked up again, the others stay");
+
   // 2d) a dish's × removes it (on the other meal, so breakfast keeps its photo for the share below)
   const second = page.locator(`[data-meal="${meals[1].id}"]`);
   await second.getByRole("button", { name: "Remove 공기밥" }).click();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Dish, Meal, MealKind } from "@/lib/types";
+import type { Meal, MealKind } from "@/lib/types";
 import { useSync } from "@/lib/store";
 import { useNow } from "@/lib/hooks";
 import { useIsDesktop } from "@/lib/media";
@@ -260,10 +260,12 @@ function MealCard({ m, date }: { m: Meal; date: number }) {
       return setDishes(rest);
     }
     const d = m.dishes[i];
-    // a new name for a typed-in dish: its old numbers don't fit any more, look it up again
-    const next: Dish = d.added ? { name, kcal: null, added: true } : { ...d, name };
-    setDishes(m.dishes.map((x, j) => (j === i ? next : x)));
-    if (d.added) void estimateDish(m.id, name, changed);
+    if (name === d.name) return;
+    // a new name: the old numbers don't fit any more, so this dish (only) is looked up again; a photo
+    // dish keeps how many were counted ("2개", not the old food's grams) and stays a photo dish
+    const count = d.added ? "" : (d.amount ?? "").replace(/\s*\([^)]*\)/g, "").trim();
+    setDishes(m.dishes.map((x, j) => (j === i ? { name, kcal: null, ...(d.added ? { added: true } : {}) } : x)));
+    void estimateDish(m.id, name, changed, count ? `${name} ${count}` : name);
   };
   return (
     <section data-meal={m.id} className="rounded-[16px] bg-surface p-3 ring-1 ring-fg/[0.06]">
